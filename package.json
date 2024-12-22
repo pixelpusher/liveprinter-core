@@ -1,0 +1,42 @@
+{
+  "name": "liveprinter-core",
+  "version": "1.0.1",
+  "description": "Programmatic 3D printing library",
+  "type": "module",
+  "files": [
+    "dist"
+  ],
+  "main": "./dist/liveprinter-core.umb.cjs",
+  "module": "./dist/liveprinter-core.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "exports": {
+    ".": {
+      "import": "./dist/liveprinter-core.js",
+      "require": "./dist/liveprinter-core.umd.cjs"
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pixelpusher/liveprinter-core.git"
+  },
+  "keywords": [
+    "3dprinting",
+    "generative",
+    "gcode"
+  ],
+  "author": "Evan Raskob",
+  "license": "AGPL-3.0-only",
+  "bugs": {
+    "url": "https://github.com/pixelpusher/liveprinter-core/issues"
+  },
+  "homepage": "https://github.com/pixelpusher/liveprinter-core#readme",
+  "devDependencies": {
+    "vite": "^6.0.5",
+    "liveprinter-utils": "github:pixelpusher/lp-utils",
+    "tonal": "^2.2.2"
+  }
+}
