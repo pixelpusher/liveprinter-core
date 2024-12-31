@@ -1,10 +1,13 @@
-import { LivePrinter } from "../lib/main";
+import { LivePrinter } from "../js/liveprinter";
 
-const lp = new LivePrinter();
 
 async function init() {
-    lp.tsp(50); 
-    await printer.mov2({x:40, y:4, z:0.18});   
+    const lp = new LivePrinter("UM2plus");
+    console.info(`BPM 140: ${lp.bpm(140)}`);
+    console.info(`travel speed A3: ${lp.tsp("A3")}`);
+    console.info(`position: ${lp.x},${lp.y},${lp.z}`);
+    await lp.mov2({x:40, y:4, z:0.18});   
+    console.info(`new position: ${lp.x},${lp.y},${lp.z}`);
 }
 
 init();

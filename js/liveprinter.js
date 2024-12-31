@@ -22,31 +22,42 @@
 
 import { Vector, Logger } from "liveprinter-utils";
 import { Note } from "tonal";
+import { 
+  GCODE_HEADER,
+  SPEED_SCALE, MAX_SPEED, BED_SIZE, 
+  ExtrusionInmm3, FilamentDiameter
+} from "./printers";
+
+
+/**
+ * in mm
+ */
+const MinLayerHeight = 0.05;
+/**
+ * empirically-derived, also 1/8 beat at 140bpm, shortest safe minimum movement interval time
+ */
+const MIN_INTERVAL = 5.357; 
+/**
+ * For matching time-formatted strings like 1, 1.0, 1.2, 1/4
+ */
+const TimeRegex = /(\d+|\d+\.\d+|\d+\/\d+)(s|ms|b)/i;
+
 
 /**
  * Core Printer API of LivePrinter, an interactive programming system for live CNC manufacturing.
  * @typicalname lp
  */
-class Printer {
+export class LivePrinter {
   ///////
   // Printer API /////////////////
   ///////
 
-  static MinLayerHeight = 0.05; // in mm
-  static filamentDiameter = { UM2: 2.85, UM2plus: 2.85, REPRAP: 2.85 };
-  static extrusionInmm3 = { UM2: false, UM2plus: true };
-
-  static MIN_INTERVAL = 5.357; // empirically-derived, also 1/8 beat at 140bpm, shortest safe minimum movement interval time
-  /**
-   * For matching time-formatted strings like 1, 1.0, 1.2, 1/4
-   */
-  static TimeRegex = /(\d+|\d+\.\d+|\d+\/\d+)(s|ms|b)/i;
-
   /**
    * Create new instance
    * @constructor
+   * @param {String} model Valid model from printers.js
    */
-  constructor() {
+  constructor(model="UM2plus") {
     /////---------------------------------------------
     // Shortcuts --------------------------------------
     this.ext = this.extrude;
@@ -100,18 +111,23 @@ class Printer {
     this.boundaryMode = "stop";
 
     this.maxMovePerCycle = 200; // max mm to move per calculation (see _extrude method)
-    this.setProperties();
+    this.setProperties(model);
   }
 
   /**
    * Set default properties for the printer based on the printer model, e.g. bed size, speeds
-   * @param {String} model Valid model from Printer class
+   * @param {String} model Valid model from printers.js
    */
-  setProperties(model = Printer.UM2plus) {
-    // TODO: not sure about this being valid - maybe check for max speed?
-    this._printSpeed = Printer.defaultPrintSpeed;
+  setProperties(model) {
     this._model = model; // default
-    this._travelSpeed = Printer.maxTravelSpeed[this._model].z;
+    this._maxTravelSpeed = MAX_SPEED[model].maxTravel;
+    this._maxPrintSpeed = MAX_SPEED[model].maxPrint;
+    this._travelSpeed = this._maxTravelSpeed.x; // sensible default
+    this._printSpeed = this._maxPrintSpeed.x/3; // sensible default
+    this._speedScale = SPEED_SCALE[model];
+    this._bedSize = BED_SIZE[model];
+    this._extrusionInmm3 = ExtrusionInmm3[model];
+    this._filamentDiameter = FilamentDiameter[model];
 
     this.minPosition = new Vector({
       x: 0, // x position in mm
@@ -121,9 +137,9 @@ class Printer {
     });
 
     this.maxPosition = new Vector({
-      x: Printer.bedSize[this._model]["x"], // x position in mm
-      y: Printer.bedSize[this._model]["y"], // y position in mm
-      z: Printer.bedSize[this._model]["z"], // z position in mm
+      x: this._bedSize["x"], // x position in mm
+      y: this._bedSize["y"], // y position in mm
+      z: this._bedSize["z"], // z position in mm
       e: 999999,
     });
 
@@ -319,7 +335,7 @@ class Printer {
   printspeed(s) {
     if (s !== undefined) {
       const _s = this.parseAsTime(s);
-      let maxs = Printer.maxPrintSpeed[this._model];
+      let maxs = this._maxPrintSpeed;
       this._printSpeed = Math.min(_s, parseFloat(maxs.x)); // pick in x direction...
     }
     return this._printSpeed;
@@ -358,7 +374,7 @@ class Printer {
   travelspeed(s) {
     if (s !== undefined) {
       const _s = this.parseAsTime(s);
-      let maxs = Printer.maxTravelSpeed[this._model];
+      let maxs = this._maxTravelSpeed;
       this._travelSpeed = Math.min(_s, parseFloat(maxs.x)); // pick in x direction...
     }
     return this._travelSpeed;
@@ -378,7 +394,7 @@ class Printer {
   }
 
   get maxspeed() {
-    return Printer.maxPrintSpeed[this._model].x;
+    return this._maxPrintSpeed.x;
   } // in mm/s
 
   get extents() {
@@ -511,10 +527,10 @@ class Printer {
   interval(time) {
     this._intervalTime = this.parseAsTime(time);
 
-    if (this._intervalTime < Printer.MIN_INTERVAL) {
-      this._intervalTime = Printer.MIN_INTERVAL;
+    if (this._intervalTime < MIN_INTERVAL) {
+      this._intervalTime = MIN_INTERVAL;
       throw new Error(
-        `Error setting interval() time, too short: ${targetTime} < ${Printer.MIN_INTERVAL}`
+        `Error setting interval() time, too short: ${targetTime} < ${MIN_INTERVAL}`
       );
     }
 
@@ -593,7 +609,7 @@ class Printer {
       if (speed <= 0)
         throw new Error("[API] retract speed can't be 0 or less: " + speed);
       // set speed safely!
-      if (speed > Printer.maxPrintSpeed["e"])
+      if (speed > this._maxPrintSpeed["e"])
         throw new Error("[API] retract speed to high: " + speed);
       speedUpdated = true;
       this._retractSpeed = speed * 60; // avoid calling next line twice
@@ -648,7 +664,7 @@ class Printer {
       if (speed <= 0)
         throw new Error("[API] retract speed can't be 0 or less: " + speed);
       // set speed safely!
-      if (speed > Printer.maxPrintSpeed["e"])
+      if (speed > this._maxPrintSpeed["e"])
         throw new Error("[API] retract speed too high: " + speed);
       speedUpdated = true;
       this._retractSpeed = speed * 60;
@@ -704,10 +720,9 @@ class Printer {
     this.z = this.maxz;
     this.totalMoveTime = 0;
 
-    this.printspeed(Printer.defaultPrintSpeed);
-    this.travelspeed(Printer.defaultPrintSpeed);
+    this.printspeed(this._defaultPrintSpeed);
+    this.travelspeed(this._defaultPrintSpeed);
     await this.sync();
-    //this.moveto({ x: this.cx, y: this.cy, z: this.maxz, speed: Printer.defaultPrintSpeed });
     //this.gcodeEvent("M106 S100"); // set fan to full
 
     return this;
@@ -1064,7 +1079,7 @@ class Printer {
         return targetTime;
       }
 
-      const params = timeStr.match(Printer.TimeRegex);
+      const params = timeStr.match(TimeRegex);
       if (params && params.length == 3) {
         const numberParam = eval(params[1]); // easiest way to parse as number
         switch (
@@ -1209,11 +1224,11 @@ class Printer {
    * @returns {Printer} Reference to this object for chaining
    */
   set layerHeight(height) {
-    this._layerHeight = Math.max(Printer.MinLayerHeight, height);
+    this._layerHeight = Math.max(MinLayerHeight, height);
   }
   //shortcut
   set lh(height) {
-    this._layerHeight = Math.max(Printer.MinLayerHeight, height);
+    this._layerHeight = Math.max(MinLayerHeight, height);
   }
   get layerHeight() {
     return this._layerHeight;
@@ -1794,7 +1809,7 @@ class Printer {
       Logger.debug(`moveTime: ${moveTime}`);
 
       // otherwise, calculate filament length needed based on layerheight, etc.
-      const filamentRadius = Printer.filamentDiameter[this._model] / 2;
+      const filamentRadius = this._filamentDiameter / 2;
 
       // for extrusion into free space
       // apparently, some printers take the filament into account (so this is in mm3)
@@ -1807,7 +1822,7 @@ class Printer {
       if (filamentLength > this.maxFilamentPerOperation) {
         throw Error("[API] Too much filament in move:" + filamentLength);
       }
-      if (!Printer.extrusionInmm3[this._model]) {
+      if (!this._extrusionInmm3) {
         filamentLength /= filamentRadius * filamentRadius * Math.PI;
       }
 
@@ -1852,44 +1867,44 @@ class Printer {
     //
     if (extruding) {
       if (
-        Math.abs(nozzleSpeed.axes.x) > Printer.maxPrintSpeed[this._model]["x"]
+        Math.abs(nozzleSpeed.axes.x) > this._maxPrintSpeed["x"]
       ) {
         throw Error("[API] X printing speed too fast:" + nozzleSpeed.axes.x);
       }
       if (
-        Math.abs(nozzleSpeed.axes.y) > Printer.maxPrintSpeed[this._model]["y"]
+        Math.abs(nozzleSpeed.axes.y) > this._maxPrintSpeed["y"]
       ) {
         throw Error("[API] Y printing speed too fast:" + nozzleSpeed.axes.y);
       }
       if (
-        Math.abs(nozzleSpeed.axes.z) > Printer.maxPrintSpeed[this._model]["z"]
+        Math.abs(nozzleSpeed.axes.z) > this._maxPrintSpeed["z"]
       ) {
         throw Error("[API] Z printing speed too fast:" + nozzleSpeed.axes.z);
       }
       if (
-        Math.abs(nozzleSpeed.axes.e) > Printer.maxPrintSpeed[this._model]["e"]
+        Math.abs(nozzleSpeed.axes.e) > this._maxPrintSpeed["e"]
       ) {
         throw Error(
           "[API] E printing speed too fast:" +
             nozzleSpeed.axes.e +
             "/" +
-            Printer.maxPrintSpeed[this._model]["e"]
+            this._maxPrintSpeed["e"]
         );
       }
     } else {
       // just traveling
       if (
-        Math.abs(nozzleSpeed.axes.x) > Printer.maxTravelSpeed[this._model]["x"]
+        Math.abs(nozzleSpeed.axes.x) > this._maxTravelSpeed["x"]
       ) {
         throw Error("[API] X travel too fast:" + nozzleSpeed.axes.x);
       }
       if (
-        Math.abs(nozzleSpeed.axes.y) > Printer.maxTravelSpeed[this._model]["y"]
+        Math.abs(nozzleSpeed.axes.y) > this._maxTravelSpeed["y"]
       ) {
         throw Error("[API] Y travel too fast:" + nozzleSpeed.axes.y);
       }
       if (
-        Math.abs(nozzleSpeed.axes.z) > Printer.maxTravelSpeed[this._model]["z"]
+        Math.abs(nozzleSpeed.axes.z) > this._maxTravelSpeed["z"]
       ) {
         throw Error("[API] Z travel too fast:" + nozzleSpeed.axes.z);
       }
@@ -2290,7 +2305,7 @@ class Printer {
    * @returns {object} x,y,z speed scales
    */
   speedScale() {
-    let bs = Printer.speedScale[this._model];
+    let bs = this._speedScale;
     return { x: bs["x"], y: bs["y"], z: bs["z"] };
   }
 
@@ -2645,96 +2660,5 @@ class Printer {
     return this;
   }
 } // end Printer class
-
-// TODO: this is dumb.  SHould be in another data model class called "printer model"
-
-// supported printers
-Printer.UM2 = "UM2";
-Printer.UM2plus = "UM2plus";
-Printer.UM2plusExt = "UM2plusExt";
-Printer.UM3 = "UM3";
-Printer.REPRAP = "REP";
-
-Printer.PRINTERS = [Printer.UM2, Printer.UM3, Printer.REPRAP];
-
-// dictionary of first GCODE sent to printer at start
-Printer.GCODE_HEADERS = {};
-Printer.GCODE_HEADERS[Printer.UM2] = [
-  ";FLAVOR:UltiGCode",
-  ";TIME:1",
-  ";MATERIAL:1",
-];
-Printer.GCODE_HEADERS[Printer.UM2plus] = [
-  ";FLAVOR:UltiGCode",
-  ";TIME:1",
-  ";MATERIAL:1",
-];
-
-Printer.GCODE_HEADERS[Printer.UM3] = [
-  ";START_OF_HEADER",
-  ";HEADER_VERSION:0.1",
-  ";FLAVOR:Griffin",
-  ";GENERATOR.NAME:GCodeGenJS",
-  ";GENERATOR.VERSION:?",
-  ";GENERATOR.BUILD_DATE:2016-11-26",
-  ";TARGET_MACHINE.NAME:Ultimaker Jedi",
-  ";EXTRUDER_TRAIN.0.INITIAL_TEMPERATURE:200",
-  ";EXTRUDER_TRAIN.0.MATERIAL.VOLUME_USED:1",
-  ";EXTRUDER_TRAIN.0.NOZZLE.DIAMETER:0.4",
-  ";BUILD_PLATE.INITIAL_TEMPERATURE:0",
-  ";PRINT.TIME:1",
-  ";PRINT.SIZE.MIN.X:0",
-  ";PRINT.SIZE.MIN.Y:0",
-  ";PRINT.SIZE.MIN.Z:0",
-  ";PRINT.SIZE.MAX.X:215",
-  ";PRINT.SIZE.MAX.Y:215",
-  ";PRINT.SIZE.MAX.Z:200",
-  ";END_OF_HEADER",
-  "G92 E0",
-];
-Printer.GCODE_HEADERS[Printer.REPRAP] = [";RepRap target", "G28", "G92 E0"];
-
-// TODO: FIX THESE!
-// https://ultimaker.com/en/products/ultimaker-2-plus/specifications
-
-// TODO: check these: there are max speeds for each motor (x,y,z,e)
-
-Printer.maxTravelSpeed = {};
-
-Printer.maxTravelSpeed[Printer.UM3] =
-  Printer.maxTravelSpeed[Printer.UM2plus] =
-  Printer.maxTravelSpeed[Printer.UM2] =
-    { x: 300, y: 300, z: 80, e: 45 };
-Printer.maxTravelSpeed[Printer.REPRAP] = { x: 300, y: 300, z: 80, e: 45 };
-
-Printer.maxPrintSpeed = {};
-Printer.maxPrintSpeed[Printer.UM2] = Printer.maxPrintSpeed[Printer.REPRAP] = {
-  x: 250,
-  y: 250,
-  z: 150,
-  e: 150,
-};
-Printer.maxPrintSpeed[Printer.UM3] = Printer.maxPrintSpeed[Printer.UM2plus] = {
-  x: 150,
-  y: 150,
-  z: 80,
-  e: 45,
-};
-
-Printer.bedSize = {};
-Printer.bedSize[Printer.UM2plus] =
-  Printer.bedSize[Printer.UM2] =
-  Printer.bedSize[Printer.UM3] =
-    { x: 223, y: 223, z: 205 };
-Printer.bedSize[Printer.UM2plusExt] = { x: 223, y: 223, z: 305 };
-Printer.bedSize[Printer.REPRAP] = { x: 150, y: 150, z: 80 };
-
-Printer.defaultPrintSpeed = 50; // mm/s
-
-Printer.speedScale = {};
-Printer.speedScale[Printer.UM2] = { x: 47.069852, y: 47.069852, z: 160.0 };
-Printer.speedScale[Printer.UM2plus] = { x: 47.069852, y: 47.069852, z: 160.0 };
-
-export { Printer };
 
 //////////////////////////////////////////////////////////

@@ -4,11 +4,12 @@ import { defineConfig } from "vite";
 export default defineConfig({
   build: {
     lib: {
-      // Could also be a dictionary or array of multiple entry points
-      entry: resolve(__dirname, "lib/main.js"),
+      entry: [
+        "./js/liveprinter.js",
+      ],
       name: "liveprinter-core",
       // the proper extensions will be added
-      fileName: "liveprinter-core",
+      fileName: (format) => `[name].${format}.js`
     },
 
     rollupOptions: {
