@@ -1,4 +1,4 @@
-import { LivePrinter } from "../js/liveprinter";
+import { LivePrinter } from "../lib/main";
 
 
 async function init() {
