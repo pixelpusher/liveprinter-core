@@ -6,8 +6,8 @@
   "files": [
     "dist"
   ],
-  "main": "./dist/liveprinter.cjs",
-  "module": "./dist/liveprinter.js",
+  "main": "./dist/liveprinter-core.umd.cjs",
+  "module": "./dist/liveprinter-core.js",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
@@ -15,8 +15,8 @@
   },
   "exports": {
     ".": {
-      "import": "./dist/liveprinter.js",
-      "require": "./dist/liveprinter.cjs"
+      "import": "./dist/liveprinter-core.js",
+      "require": "./dist/liveprinter-core.umd.cjs"
     }
   },
   "repository": {
