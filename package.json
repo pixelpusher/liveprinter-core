@@ -1,12 +1,12 @@
 {
   "name": "liveprinter-core",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "Programmatic 3D printing library",
   "type": "module",
   "files": [
     "dist"
   ],
-  "main": "./dist/liveprinter.umd.cjs",
+  "main": "./dist/liveprinter.umd.js",
   "module": "./dist/liveprinter.js",
   "scripts": {
     "dev": "vite",
@@ -16,7 +16,7 @@
   "exports": {
     ".": {
       "import": "./dist/liveprinter.js",
-      "require": "./dist/liveprinter.umd.cjs"
+      "require": "./dist/liveprinter.umd.js"
     }
   },
   "repository": {
