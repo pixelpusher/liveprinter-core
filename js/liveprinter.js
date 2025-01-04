@@ -87,6 +87,7 @@ export class LivePrinter {
     this._autoRetract = true; // automatically unretract/retract - see get/set autoretract
     this._bpm = 120; // for beat-based movements
     this._intervalTime = 16; // for breaking up movements, in ms
+    this._stopped = false; // for manual stop during mistakes and long moves
     ////////////////////////////////////////////
 
     this.totalMoveTime = 0; // time spent moving/extruding
@@ -149,6 +150,13 @@ export class LivePrinter {
       z: this.minPosition.axes.z, // z position in mm
       e: 0,
     });
+  }
+
+  /**
+   * Set flag for stopping all operations
+   */
+  stop(state=true) {
+    this._stopped = state;
   }
 
   /**
@@ -709,6 +717,7 @@ export class LivePrinter {
    * @returns {Printer} reference to this object for chaining
    */
   async start(hotEndTemp = "190", bedTemp = "50") {
+    this.stop(false); //reset to starting again
     await this.gcodeEvent("G28");
     await this.gcodeEvent("M114"); // get current position
     await this.gcodeEvent("M106 S0"); // set fan to off
@@ -991,6 +1000,9 @@ export class LivePrinter {
     let safetyCounter = 20000; // arbitrary -- make sure we don't hit infinite loops
 
     while (safetyCounter && this.totalMoveTime < targetTime) {
+      if (this._stopped) {
+        throw new Exception("drawtime() manually stopped");
+      }
       safetyCounter--;
 
       // for debugging and tuning
@@ -1145,6 +1157,9 @@ export class LivePrinter {
     });
 
     while (safetyCounter && totalDistance < targetDist) {
+      if (this._stopped) {
+        throw new Exception("draw() manually stopped");
+      }
       safetyCounter--;
 
       // update time counters
@@ -1466,6 +1481,9 @@ export class LivePrinter {
     let safetyCounter = 800; // arbitrary -- make sure we don't hit infinite loops
 
     while (safetyCounter && totalDistance < targetDist) {
+      if (this._stopped) {
+        throw new Exception("travel() manually stopped");
+      }
       safetyCounter--;
 
       const opStartTime = performance.now();
@@ -1842,7 +1860,19 @@ export class LivePrinter {
 
     //TODO: fix this
     newPosition = this.clipToPrinterBounds(newPosition.axes);
-
+/*
+    this.printEvent({
+      'type': 'info',
+      'newPosition': newPosition.axes,
+      'oldPosition': oldPosition.axes,
+      'speed': this.travelspeed,
+      'moveTime': moveTime,
+      'totalMoveTime': this.totalMoveTime,
+      'layerHeight': this.layerHeight,
+      'length':length,
+      'note': 'Clipped';
+    })
+*/
     this.totalMoveTime += moveTime; // update total movement time for the printer in ms
 
     //this._elevation = Math.asin(velocity.axes.z); // removed because it was non-intuitive!!!
