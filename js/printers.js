@@ -46,19 +46,19 @@ export const GCODE_HEADER = {
 
 export const MAX_SPEED = {
     "UM2plus": {
-        maxTravel: { x: 300, y: 300, z: 80, e: 45 },
-        maxPrint: { x: 250, y: 250, z: 150, e: 45 },
+        maxPrint: { x: 300, y: 300, z: 80, e: 45 },
+        maxTravel: { x: 250, y: 250, z: 150, e: 45 },
     },
     
     "UM2": {
-        maxTravel: { x: 300, y: 300, z: 80, e: 45 },
-        maxPrint: { x: 250, y: 250, z: 150, e: 45 },
-    },
+      maxPrint: { x: 300, y: 300, z: 80, e: 45 },
+      maxTravel: { x: 250, y: 250, z: 150, e: 45 },
+  },
     
     "UM3": {
-        maxTravel: { x: 300, y: 300, z: 80, e: 45 },
-        maxPrint: { x: 250, y: 250, z: 150, e: 45 },
-    },
+      maxPrint: { x: 300, y: 300, z: 80, e: 45 },
+      maxTravel: { x: 250, y: 250, z: 150, e: 45 },
+  },
 
     "REPRAP": {
         maxTravel: { x: 300, y: 300, z: 80, e: 45 },
