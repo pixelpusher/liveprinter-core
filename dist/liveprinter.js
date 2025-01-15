@@ -568,13 +568,13 @@ function isChroma(t) {
   return REGEX.test(t);
 }
 var dictionary = function(t) {
-  var e = Object.keys(t).sort(), i = [], r = [], s = function(l, p, P) {
-    i[l] = p, r[P] = r[P] || [], r[P].push(l);
+  var e = Object.keys(t).sort(), i = [], r = [], s = function(l, x, P) {
+    i[l] = x, r[P] = r[P] || [], r[P].push(l);
   };
   e.forEach(function(l) {
-    var p = t[l][0].split(" "), P = t[l][1], y = chroma(p);
-    s(l, p, y), P && P.forEach(function(x) {
-      return s(x, p, y);
+    var x = t[l][0].split(" "), P = t[l][1], y = chroma(x);
+    s(l, x, y), P && P.forEach(function(p) {
+      return s(p, x, y);
     });
   });
   var n = Object.keys(i).sort(), d = function(l) {
@@ -646,7 +646,7 @@ class LivePrinter {
    * @param {String} model Valid model from printers.js
    */
   constructor(t = "UM2plus") {
-    this.ext = this.extrude, this.ext2 = this.extrudeto, this.mov = this.move, this.mov2 = this.moveto, this.tur = this.turn, this.tur2 = this.turnto, this.ret = this.retract, this.unret = this.unretract, this.gcodeListeners = [], this.printListeners = [], this.errorListeners = [], this.opListeners = [], this._layerHeight = 0.2, this.lastSpeed = -1, this._heading = 0, this._elevation = 0, this._distance = 0, this._waitTime = 0, this._autoRetract = !0, this._bpm = 120, this._intervalTime = 16, this.totalMoveTime = 0, this.maxFilamentPerOperation = 30, this.minFilamentPerOperation = 2e-4, this.maxTimePerOperation = 6e4, this.currentRetraction = 0, this.retractLength = 8.5, this._retractSpeed = 30 * 60, this.firmwareRetract = !1, this.extraUnretract = 0, this.unretractZHop = 0, this.boundaryMode = "stop", this.maxMovePerCycle = 200, this.setProperties(t);
+    this.ext = this.extrude, this.ext2 = this.extrudeto, this.mov = this.move, this.mov2 = this.moveto, this.tur = this.turn, this.tur2 = this.turnto, this.ret = this.retract, this.unret = this.unretract, this.gcodeListeners = [], this.printListeners = [], this.errorListeners = [], this.opListeners = [], this._layerHeight = 0.2, this.lastSpeed = -1, this._heading = 0, this._elevation = 0, this._distance = 0, this._waitTime = 0, this._autoRetract = !0, this._bpm = 120, this._intervalTime = 16, this._stopped = !1, this.totalMoveTime = 0, this.maxFilamentPerOperation = 30, this.minFilamentPerOperation = 2e-4, this.maxTimePerOperation = 6e4, this.currentRetraction = 0, this.retractLength = 8.5, this._retractSpeed = 30 * 60, this.firmwareRetract = !1, this.extraUnretract = 0, this.unretractZHop = 0, this.boundaryMode = "stop", this.maxMovePerCycle = 200, this.setProperties(t);
   }
   /**
    * Set default properties for the printer based on the printer model, e.g. bed size, speeds
@@ -678,6 +678,12 @@ class LivePrinter {
       // z position in mm
       e: 0
     });
+  }
+  /**
+   * Set flag for stopping all operations
+   */
+  stop(t = !0) {
+    this._stopped = t;
   }
   /**
    *  Notify listeners that GCode is ready to be consumed.
@@ -1072,7 +1078,7 @@ class LivePrinter {
         "G1 E" + s + " F" + this._retractSpeed.toFixed(4)
       ), this.e = parseFloat(s);
     }
-    return this.printEvent({
+    return await this.printEvent({
       type: "retract",
       speed: this.retractSpeed,
       length: this.retractLength
@@ -1101,7 +1107,7 @@ class LivePrinter {
     }
     return this.e += this.retractLength + this.extraUnretract, this.firmwareRetract ? ((r || i) && await this.sendFirmwareRetractSettings(), await this.gcodeEvent("G11")) : (this.e = parseFloat(this.e.toFixed(4)), this.currentRetraction = 0, await this.gcodeEvent("; unretract"), await this.gcodeEvent(
       "G1 E" + this.e + " F" + this._retractSpeed.toFixed(4)
-    )), this.printEvent({
+    )), await this.printEvent({
       type: "unretract",
       speed: this.retractSpeed,
       length: this.retractLength
@@ -1115,7 +1121,7 @@ class LivePrinter {
    * @returns {Printer} reference to this object for chaining
    */
   async start(t = "190", e = "50") {
-    return await this.gcodeEvent("G28"), await this.gcodeEvent("M114"), await this.gcodeEvent("M106 S0"), await this.gcodeEvent("M104 S" + t), await this.sendFirmwareRetractSettings(), this.x = 0, this.y = this.maxy, this.z = this.maxz, this.totalMoveTime = 0, this.printspeed(this._defaultPrintSpeed), this.travelspeed(this._defaultPrintSpeed), await this.sync(), this;
+    return this.stop(!1), await this.gcodeEvent("G28"), await this.gcodeEvent("M114"), await this.gcodeEvent("M106 S0"), await this.gcodeEvent("M104 S" + t), await this.sendFirmwareRetractSettings(), this.x = 0, this.y = this.maxy, this.z = this.maxz, this.totalMoveTime = 0, this.printspeed(this._defaultPrintSpeed), this.travelspeed(this._defaultPrintSpeed), await this.sync(), this;
   }
   /**
    * Set hot end temperature, don't block other operation.
@@ -1301,7 +1307,7 @@ class LivePrinter {
     } catch (n) {
       throw n;
     }
-    this.printEvent({
+    await this.printEvent({
       type: "drawtime-start",
       speed: this._printSpeed,
       start: e,
@@ -1309,23 +1315,25 @@ class LivePrinter {
     }), i += this.totalMoveTime, this._distance = 0;
     let s = 2e4;
     for (; s && this.totalMoveTime < i; ) {
+      if (this._stopped)
+        throw new Exception("drawtime() manually stopped");
       s--;
-      const n = performance.now(), d = this.x, l = this.y, p = this.z, P = this.totalMoveTime - e, y = this._timeWarp({
+      const n = performance.now(), d = this.x, l = this.y, x = this.z, P = this.totalMoveTime - e, y = this._timeWarp({
         dt: this._intervalTime,
         t: P,
         tt: this.totalMoveTime
-      }), x = this.t2mm(y);
-      let f = 0, h = x;
+      }), p = this.t2mm(y);
+      let f = 0, h = p;
       const { d: a, heading: c, elevation: v } = this._warp({
-        d: x,
+        d: p,
         heading: this._heading,
         elevation: this._elevation,
         t: P,
         tt: this.totalMoveTime
       });
-      h = a, Math.abs(v) > Number.EPSILON && (h = a * Math.cos(v), f = a * Math.sin(v)), r.x = d + h * Math.cos(c), r.y = l + h * Math.sin(c), r.z = p + f, await this.extrudeto(r), Logger.debug(
+      h = a, Math.abs(v) > Number.EPSILON && (h = a * Math.cos(v), f = a * Math.sin(v)), r.x = d + h * Math.cos(c), r.y = l + h * Math.sin(c), r.z = x + f, await this.extrudeto(r), Logger.debug(
         `Move time warp op took ${performance.now() - n} ms vs. expected ${this._intervalTime}.`
-      ), this.printEvent({
+      ), await this.printEvent({
         type: "drawtime-start",
         speed: this._printSpeed,
         start: e,
@@ -1385,17 +1393,19 @@ class LivePrinter {
     this._distance = t && isFinite(t) ? t : this._distance;
     const r = this._distance, s = { speed: this._printSpeed };
     let n = 2e4;
-    for (this.printEvent({
+    for (await this.printEvent({
       type: "draw-start",
       speed: this._printSpeed,
       length: this._distance
     }); n && i < r; ) {
+      if (this._stopped)
+        throw new Exception("draw() manually stopped");
       n--;
-      const d = this.totalMoveTime - e, l = performance.now(), p = this.x, P = this.y, y = this.z, x = this._timeWarp({
+      const d = this.totalMoveTime - e, l = performance.now(), x = this.x, P = this.y, y = this.z, p = this._timeWarp({
         dt: this._intervalTime,
         t: d,
         tt: this.totalMoveTime
-      }), f = Math.min(this.t2mm(x), r - i), { d: h, heading: a, elevation: c } = this._warp({
+      }), f = Math.min(this.t2mm(p), r - i), { d: h, heading: a, elevation: c } = this._warp({
         d: f,
         heading: this._heading,
         elevation: this._elevation,
@@ -1409,11 +1419,11 @@ class LivePrinter {
         break;
       }
       let v = h * Math.sin(c), _ = h * Math.cos(c);
-      s.x = p + _ * Math.cos(a), s.y = P + _ * Math.sin(a), s.z = y + v, await this.extrudeto(s), i += f, Logger.debug(
+      s.x = x + _ * Math.cos(a), s.y = P + _ * Math.sin(a), s.z = y + v, await this.extrudeto(s), i += f, Logger.debug(
         `Move draw warp op took ${performance.now() - l} ms vs. expected ${this._intervalTime}.`
       );
     }
-    return this._elevation = 0, this._distance = 0, this.printEvent({
+    return this._elevation = 0, this._distance = 0, await this.printEvent({
       type: "draw-end",
       speed: this._printSpeed,
       length: i
@@ -1464,11 +1474,11 @@ class LivePrinter {
    * @returns {Printer} Reference to this object for chaining
    */
   run(t) {
-    const e = "M", i = "E", r = "L", s = "R", n = "U", d = "D", l = "<", p = ">", P = /([a-zA-Z<>][0-9]+\.?[0-9]*)/gim, y = /([a-zA-Z<>])([0-9]+\.?[0-9]*)/, x = t.match(P);
-    for (let f of x) {
+    const e = "M", i = "E", r = "L", s = "R", n = "U", d = "D", l = "<", x = ">", P = /([a-zA-Z<>][0-9]+\.?[0-9]*)/gim, y = /([a-zA-Z<>])([0-9]+\.?[0-9]*)/, p = t.match(P);
+    for (let f of p) {
       let h = f.match(y);
       if (h.length !== 3)
-        throw new Error("[API] Error in command string: " + x);
+        throw new Error("[API] Error in command string: " + p);
       const a = h[1].toUpperCase(), c = parseFloat(h[2]);
       switch (a) {
         case e:
@@ -1492,7 +1502,7 @@ class LivePrinter {
         case l:
           this.retract(c);
           break;
-        case p:
+        case x:
           this.unretract(c);
           break;
         default:
@@ -1619,12 +1629,14 @@ class LivePrinter {
     this._distance = 0;
     let n = 800;
     for (; n && i < r; ) {
+      if (this._stopped)
+        throw new Exception("travel() manually stopped");
       n--;
-      const d = performance.now(), l = this.totalMoveTime - e, p = this.x, P = this.y, y = this.z, x = this._timeWarp({
+      const d = performance.now(), l = this.totalMoveTime - e, x = this.x, P = this.y, y = this.z, p = this._timeWarp({
         dt: this._intervalTime,
         t: l,
         tt: this.totalMoveTime
-      }), f = Math.min(this.t2mm(x), r - i);
+      }), f = Math.min(this.t2mm(p), r - i);
       let h = 0, a = f, { d: c, heading: v, elevation: _ } = this._warp({
         d: f,
         heading: this._heading,
@@ -1633,8 +1645,8 @@ class LivePrinter {
         tt: this.totalMoveTime
       });
       if (f + _ < 1e-5) break;
-      a = c, Math.abs(_) > Number.EPSILON && (a = c * Math.cos(_), h = c * Math.sin(_)), s.x = p + a * Math.cos(v), s.y = P + a * Math.sin(v), s.z = y + h, await this.moveto(s), i += f, Logger.debug(
-        `Move time warp op (${x}) took ${performance.now() - d} ms vs. expected ${this._intervalTime}.`
+      a = c, Math.abs(_) > Number.EPSILON && (a = c * Math.cos(_), h = c * Math.sin(_)), s.x = x + a * Math.cos(v), s.y = P + a * Math.sin(v), s.z = y + h, await this.moveto(s), i += f, Logger.debug(
+        `Move time warp op (${p}) took ${performance.now() - d} ms vs. expected ${this._intervalTime}.`
       );
     }
     return this._elevation = 0, this;
@@ -1657,19 +1669,19 @@ class LivePrinter {
     let s = 2e4;
     for (; s && this.totalMoveTime < i; ) {
       s--;
-      const n = performance.now(), d = this.x, l = this.y, p = this.z, P = this.totalMoveTime - e, y = this._timeWarp({
+      const n = performance.now(), d = this.x, l = this.y, x = this.z, P = this.totalMoveTime - e, y = this._timeWarp({
         dt: this._intervalTime,
         t: P,
         tt: this.totalMoveTime
-      }), x = this.t2mm(y);
-      let f = 0, h = x, { d: a, heading: c, elevation: v } = this._warp({
-        d: x,
+      }), p = this.t2mm(y);
+      let f = 0, h = p, { d: a, heading: c, elevation: v } = this._warp({
+        d: p,
         heading: this._heading,
         elevation: this._elevation,
         t: P,
         tt: this.totalMoveTime
       });
-      h = a, Math.abs(v) > Number.EPSILON && (h = a * Math.cos(v), f = a * Math.sin(v)), r.x = d + h * Math.cos(c), r.y = l + h * Math.sin(c), r.z = p + f, await this.moveto(r), Logger.debug(
+      h = a, Math.abs(v) > Number.EPSILON && (h = a * Math.cos(v), f = a * Math.sin(v)), r.x = d + h * Math.cos(c), r.y = l + h * Math.sin(c), r.z = x + f, await this.moveto(r), Logger.debug(
         `Move time warp op took ${performance.now() - n} ms vs. expected ${this._intervalTime}.`
       );
     }
@@ -1720,35 +1732,35 @@ class LivePrinter {
    * @returns {Printer} reference to this object for chaining
    */
   async extrudeto(t) {
-    const e = t.e === void 0, i = t.x !== void 0 ? parseFloat(t.x) : this.x, r = t.y !== void 0 ? parseFloat(t.y) : this.y, s = t.z !== void 0 ? parseFloat(t.z) : this.z, n = t.e !== void 0 ? parseFloat(t.e) : this.e, d = Math.abs(n - this.e) > 1e-4, l = e || d, p = e && d && (t.retract === !0 || t.retract === void 0 && this._autoRetract);
-    !e && d && (this.currentRetraction = 0), p && await this.unretract();
+    const e = t.e === void 0, i = t.x !== void 0 ? parseFloat(t.x) : this.x, r = t.y !== void 0 ? parseFloat(t.y) : this.y, s = t.z !== void 0 ? parseFloat(t.z) : this.z, n = t.e !== void 0 ? parseFloat(t.e) : this.e, d = Math.abs(n - this.e) > 1e-4, l = e || d, x = e && d && (t.retract === !0 || t.retract === void 0 && this._autoRetract);
+    !e && d && (this.currentRetraction = 0), x && await this.unretract();
     let P = new Vector({ x: i, y: r, z: s, e: n }), y = parseFloat(
       t.speed !== void 0 ? t.speed : l ? this._printSpeed : this._travelSpeed
     );
     this.layerHeight = parseFloat(
       t.thickness !== void 0 ? t.thickness : this.layerHeight
     ), t.thick !== void 0 && (this.layerHeight = parseFloat(t.thick));
-    const x = Vector.sub(P, this.position), f = new Vector(
-      x.axes.x,
-      x.axes.y,
-      x.axes.z
+    const p = Vector.sub(P, this.position), f = new Vector(
+      p.axes.x,
+      p.axes.y,
+      p.axes.z
     );
     let h, a;
     if (h = f.mag(), !d && h < Number.EPSILON) return;
-    if (h < 1e-4 ? a = 1e3 * x.axes.e / y : a = 1e3 * h / y, Number.isNaN(a))
+    if (h < 1e-4 ? a = 1e3 * p.axes.e / y : a = 1e3 * h / y, Number.isNaN(a))
       throw new Error("Movetime NAN in extrudeTo");
     if (e) {
       const _ = this._filamentDiameter / 2;
       let A = h * this.layerHeight * this.layerHeight;
       if (A > this.maxFilamentPerOperation)
         throw Error("[API] Too much filament in move:" + A);
-      this._extrusionInmm3 || (A /= _ * _ * Math.PI), x.axes.e = A, P.axes.e = this.e + x.axes.e;
+      this._extrusionInmm3 || (A /= _ * _ * Math.PI), p.axes.e = A, P.axes.e = this.e + p.axes.e;
     }
     if (P = this.clipToPrinterBounds(P.axes), this.totalMoveTime += a, a > this.maxTimePerOperation)
       throw new Error("[API] move time too long:" + a);
     if (a < 1e-3)
       throw this.errorEvent("[API] total move time too short:" + a), new Error("[API] move time too short:" + a);
-    const c = Vector.div(x, a / 1e3);
+    const c = Vector.div(p, a / 1e3);
     if (l) {
       if (Math.abs(c.axes.x) > this._maxPrintSpeed.x)
         throw Error("[API] X printing speed too fast:" + c.axes.x);
@@ -1769,7 +1781,7 @@ class LivePrinter {
         throw Error("[API] Z travel too fast:" + c.axes.z);
     }
     const v = { ...this.position.axes };
-    this.position.set(P), await this.sendExtrusionGCode(y), l ? this.printEvent({
+    this.position.set(P), await this.sendExtrusionGCode(y), l ? await this.printEvent({
       type: "extrude",
       newPosition: { ...this.position.axes },
       oldPosition: { ...v },
@@ -1778,7 +1790,7 @@ class LivePrinter {
       totalMoveTime: this.totalMoveTime,
       layerHeight: this.layerHeight,
       length: h
-    }) : this.printEvent({
+    }) : await this.printEvent({
       type: "travel",
       newPosition: { ...this.position.axes },
       oldPosition: { ...v },
@@ -1787,7 +1799,7 @@ class LivePrinter {
       totalMoveTime: this.totalMoveTime,
       layerHeight: this.layerHeight,
       length: h
-    }), p && await this.retract();
+    }), x && await this.retract();
   }
   // end extrudeto
   /**
@@ -1917,13 +1929,13 @@ class LivePrinter {
     const r = [];
     r.push(...i);
     let s = 0, n = 0, d = 0, l = 0;
-    for (const p of r)
+    for (const x of r)
       if (t < 10) {
         this._waitTime = e;
         break;
       } else {
-        let P = this.midi2speed(t, p);
-        s += P * P, p === "x" ? this._heading < Math.PI / 2 && this._heading > -Math.PI / 2 ? d = -90 : d = 90 : p === "y" ? this._heading > 0 && this._heading < Math.PI ? n = 90 : n = -90 : p === "z" && (this._elevation > 0 ? l = Math.PI / 2 : l = -Math.PI / 2);
+        let P = this.midi2speed(t, x);
+        s += P * P, x === "x" ? this._heading < Math.PI / 2 && this._heading > -Math.PI / 2 ? d = -90 : d = 90 : x === "y" ? this._heading > 0 && this._heading < Math.PI ? n = 90 : n = -90 : x === "z" && (this._elevation > 0 ? l = Math.PI / 2 : l = -Math.PI / 2);
       }
     return this._heading = Math.atan2(n, d), this._elevation = l, this._distance = this.printpeed(Math.sqrt(s)) * e / 1e3, this;
   }
@@ -2059,10 +2071,10 @@ class LivePrinter {
     h: n = 0,
     useaspect: d = !0,
     passes: l = 1,
-    safeZ: p = 0
+    safeZ: x = 0
   }) {
-    p = p || this.layerHeight * l + 10;
-    let P = 1 / 0, y = 1 / 0, x = -1 / 0, f = -1 / 0, h = t.length;
+    x = x || this.layerHeight * l + 10;
+    let P = 1 / 0, y = 1 / 0, p = -1 / 0, f = -1 / 0, h = t.length;
     for (; h--; ) {
       let g = t[h].length, u = {
         x: 1 / 0,
@@ -2072,10 +2084,10 @@ class LivePrinter {
         area: 0
       };
       for (; g--; )
-        P = Math.min(t[h][g][0], P), y = Math.min(t[h][g][1], y), x = Math.max(t[h][g][0], x), f = Math.max(t[h][g][1], f), t[h][g][0] < u.x && (u.x = t[h][g][0]), t[h][g][1] < u.y && (u.y = t[h][g][0]), t[h][g][0] > u.x2 && (u.x2 = t[h][g][0]), t[h][g][1] > u.y2 && (u.y2 = t[h][g][0]);
+        P = Math.min(t[h][g][0], P), y = Math.min(t[h][g][1], y), p = Math.max(t[h][g][0], p), f = Math.max(t[h][g][1], f), t[h][g][0] < u.x && (u.x = t[h][g][0]), t[h][g][1] < u.y && (u.y = t[h][g][0]), t[h][g][0] > u.x2 && (u.x2 = t[h][g][0]), t[h][g][1] > u.y2 && (u.y2 = t[h][g][0]);
       u.area = (1 + u.x2 - u.x) * (1 + u.y2 - u.y), t[h].bounds = u;
     }
-    const a = x - P, c = f - y, v = s && n, _ = s || n;
+    const a = p - P, c = f - y, v = s && n, _ = s || n;
     if (!v)
       if (_)
         if (s > 0) {
@@ -2087,7 +2099,7 @@ class LivePrinter {
         }
       else
         s = a, n = c;
-    const A = makeMapping([P, x], [i, i + s]), E = makeMapping([y, f], [e, e + n]);
+    const A = makeMapping([P, p], [i, i + s]), E = makeMapping([y, f], [e, e + n]);
     t.sort(function(g, u) {
       return g.bounds.x < u.bounds.x ? -1 : 1;
     });
@@ -2107,7 +2119,7 @@ class LivePrinter {
             retract: !1
           });
         }
-        S < l ? b.reverse() : (await this.retract(), await this.moveto({ z: p }));
+        S < l ? b.reverse() : (await this.retract(), await this.moveto({ z: x }));
       }
     }
     return this;
@@ -2133,11 +2145,11 @@ class LivePrinter {
     h: n = 0,
     t: d = 1,
     useaspect: l = !0,
-    passes: p = 1,
+    passes: x = 1,
     safeZ: P = 0
   }) {
-    P = P || this.layerHeight * p + 10, d = this.layerHeight * 2.5 * d;
-    let y = 1 / 0, x = 1 / 0, f = -1 / 0, h = -1 / 0, a = t.length;
+    P = P || this.layerHeight * x + 10, d = this.layerHeight * 2.5 * d;
+    let y = 1 / 0, p = 1 / 0, f = -1 / 0, h = -1 / 0, a = t.length;
     for (; a--; ) {
       let u = t[a].length, b = {
         x: 1 / 0,
@@ -2147,10 +2159,10 @@ class LivePrinter {
         area: 0
       };
       for (; u--; )
-        y = Math.min(t[a][u][0], y), x = Math.min(t[a][u][1], x), f = Math.max(t[a][u][0], f), h = Math.max(t[a][u][1], h), t[a][u][0] < b.x && (b.x = t[a][u][0]), t[a][u][1] < b.y && (b.y = t[a][u][0]), t[a][u][0] > b.x2 && (b.x2 = t[a][u][0]), t[a][u][1] > b.y2 && (b.y2 = t[a][u][0]);
+        y = Math.min(t[a][u][0], y), p = Math.min(t[a][u][1], p), f = Math.max(t[a][u][0], f), h = Math.max(t[a][u][1], h), t[a][u][0] < b.x && (b.x = t[a][u][0]), t[a][u][1] < b.y && (b.y = t[a][u][0]), t[a][u][0] > b.x2 && (b.x2 = t[a][u][0]), t[a][u][1] > b.y2 && (b.y2 = t[a][u][0]);
       t[a].bounds = b;
     }
-    const c = f - y, v = h - x, _ = s && n, A = s || n;
+    const c = f - y, v = h - p, _ = s && n, A = s || n;
     if (!_)
       if (A)
         if (s > 0) {
@@ -2162,11 +2174,11 @@ class LivePrinter {
         }
       else
         s = c, n = v;
-    const E = makeMapping([y, f], [i, i + s]), g = makeMapping([x, h], [e, e + n]);
+    const E = makeMapping([y, f], [i, i + s]), g = makeMapping([p, h], [e, e + n]);
     t.sort(function(u, b) {
       return u.bounds.x < b.bounds.x ? -1 : 1;
     });
-    for (let u = 1; u <= p; u++)
+    for (let u = 1; u <= x; u++)
       for (let b = 0, S = t.length; b < S; b++) {
         let w = t[b].slice();
         const F = u * this.layerHeight + r;
@@ -2183,7 +2195,7 @@ class LivePrinter {
             L !== $ ? (await this.drawfill(z || 2, T || 2, d), z = T = 0, this.turn(L), $ = L) : (z += C, T += N);
           }
         }
-        u < p ? w.reverse() : await this.moveto({ z: P });
+        u < x ? w.reverse() : await this.moveto({ z: P });
       }
     return this;
   }
