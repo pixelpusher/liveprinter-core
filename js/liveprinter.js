@@ -1087,7 +1087,7 @@ export class LivePrinter {
       timeStr = timeStr.toLowerCase();
 
       if (/^[a-z]/.test(timeStr)) {
-        targetTime = this.m2s(timeStr);
+        targetTime = this.midi2speed(timeStr);
         return targetTime;
       }
 
