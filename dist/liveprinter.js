@@ -1354,7 +1354,7 @@ class LivePrinter {
     else {
       let timeStr = time + "";
       if (timeStr = timeStr.toLowerCase(), /^[a-z]/.test(timeStr))
-        return targetTime = this.m2s(timeStr), targetTime;
+        return targetTime = this.midi2speed(timeStr), targetTime;
       const params = timeStr.match(TimeRegex);
       if (params && params.length == 3) {
         const numberParam = eval(params[1]);
