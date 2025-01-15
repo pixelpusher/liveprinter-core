@@ -640,7 +640,7 @@ export class LivePrinter {
       await this.gcodeEvent("G10");
     }
 
-    this.printEvent({
+    await this.printEvent({
       type: "retract",
       speed: this.retractSpeed,
       length: this.retractLength,
@@ -700,7 +700,7 @@ export class LivePrinter {
     }
     //this.e = parseFloat(this.e.toFixed(4));
 
-    this.printEvent({
+    await this.printEvent({
       type: "unretract",
       speed: this.retractSpeed,
       length: this.retractLength,
@@ -980,7 +980,7 @@ export class LivePrinter {
       throw err; // re-throw to scheduler
     }
 
-    this.printEvent({
+    await this.printEvent({
       type: "drawtime-start",
       speed: this._printSpeed,
       start: startTime,
@@ -1060,7 +1060,7 @@ export class LivePrinter {
         } ms vs. expected ${this._intervalTime}.`
       );
 
-      this.printEvent({
+      await this.printEvent({
         type: "drawtime-start",
         speed: this._printSpeed,
         start: startTime,
@@ -1150,7 +1150,7 @@ export class LivePrinter {
 
     let safetyCounter = 20000; // arbitrary -- make sure we don't hit infinite loops
 
-    this.printEvent({
+    await this.printEvent({
       type: "draw-start",
       speed: this._printSpeed,
       length: this._distance,
@@ -1224,7 +1224,7 @@ export class LivePrinter {
     this._elevation = 0;
     this._distance = 0;
 
-    this.printEvent({
+    await this.printEvent({
       type: "draw-end",
       speed: this._printSpeed,
       length: totalDistance,
@@ -1949,7 +1949,7 @@ export class LivePrinter {
     await this.sendExtrusionGCode(_speed);
 
     if (extruding) {
-      this.printEvent({
+      await this.printEvent({
         type: "extrude",
         newPosition: { ...this.position.axes },
         oldPosition: { ...oldPosition },
@@ -1960,7 +1960,7 @@ export class LivePrinter {
         length: distanceMag,
       });
     } else {
-      this.printEvent({
+      await this.printEvent({
         type: "travel",
         newPosition: { ...this.position.axes },
         oldPosition: { ...oldPosition },
