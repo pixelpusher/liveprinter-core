@@ -1059,14 +1059,14 @@ export class LivePrinter {
           performance.now() - opStartTime
         } ms vs. expected ${this._intervalTime}.`
       );
-
-      await this.printEvent({
-        type: "drawtime-start",
-        speed: this._printSpeed,
-        start: startTime,
-        end: targetTime,
-      });
     }
+
+    await this.printEvent({
+      type: "drawtime-end",
+      speed: this._printSpeed,
+      start: startTime,
+      end: targetTime,
+    });
 
     return this;
   }
@@ -1480,6 +1480,12 @@ export class LivePrinter {
 
     let safetyCounter = 800; // arbitrary -- make sure we don't hit infinite loops
 
+    await this.printEvent({
+      type: "travel-start",
+      speed: this._travelSpeed,
+      length: this._distance,
+    });
+
     while (safetyCounter && totalDistance < targetDist) {
       if (this._stopped) {
         throw new Exception("travel() manually stopped");
@@ -1543,6 +1549,11 @@ export class LivePrinter {
           performance.now() - opStartTime
         } ms vs. expected ${this._intervalTime}.`
       );
+      await this.printEvent({
+        type: "travel-end",
+        speed: this._travelSpeedSpeed,
+        length: this._distance,
+      });
     }
 
     // done, reset elevation
@@ -1583,6 +1594,13 @@ export class LivePrinter {
     // Logger.debug(`go: total move time/num: ${totalMovementsTime} / ${totalMovements}`);
 
     let safetyCounter = 20000; // arbitrary -- make sure we don't hit infinite loops
+
+    await this.printEvent({
+      type: "traveltime-start",
+      speed: this._travelSpeed,
+      start: startTime,
+      end: targetTime,
+    });
 
     while (safetyCounter && this.totalMoveTime < targetTime) {
       safetyCounter--;
@@ -1641,6 +1659,13 @@ export class LivePrinter {
         } ms vs. expected ${this._intervalTime}.`
       );
     }
+
+    await this.printEvent({
+      type: "traveltime-end",
+      speed: this._travelSpeed,
+      start: startTime,
+      end: targetTime,
+    });
 
     return this;
   }
