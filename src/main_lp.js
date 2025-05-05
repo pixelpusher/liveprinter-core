@@ -8,6 +8,11 @@ async function init() {
     console.info(`position: ${lp.x},${lp.y},${lp.z}`);
     await lp.mov2({x:40, y:4, z:0.18});   
     console.info(`new position: ${lp.x},${lp.y},${lp.z}`);
+
+    // test delay
+
+    // test main loop, pause and break
+
 }
 
 init();

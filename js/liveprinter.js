@@ -22,12 +22,14 @@
 
 import { Vector, Logger } from "liveprinter-utils";
 import { Note } from "tonal";
-import { 
+import {
   GCODE_HEADER,
-  SPEED_SCALE, MAX_SPEED, BED_SIZE, 
-  ExtrusionInmm3, FilamentDiameter
+  SPEED_SCALE,
+  MAX_SPEED,
+  BED_SIZE,
+  ExtrusionInmm3,
+  FilamentDiameter,
 } from "./printers";
-
 
 /**
  * in mm
@@ -36,12 +38,11 @@ const MinLayerHeight = 0.05;
 /**
  * empirically-derived, also 1/8 beat at 140bpm, shortest safe minimum movement interval time
  */
-const MIN_INTERVAL = 5.357; 
+const MIN_INTERVAL = 5.357;
 /**
  * For matching time-formatted strings like 1, 1.0, 1.2, 1/4
  */
 const TimeRegex = /(\d+|\d+\.\d+|\d+\/\d+)(s|ms|b)/i;
-
 
 /**
  * Core Printer API of LivePrinter, an interactive programming system for live CNC manufacturing.
@@ -57,7 +58,7 @@ export class LivePrinter {
    * @constructor
    * @param {String} model Valid model from printers.js
    */
-  constructor(model="UM2plus") {
+  constructor(model = "UM2plus") {
     /////---------------------------------------------
     // Shortcuts --------------------------------------
     this.ext = this.extrude;
@@ -88,6 +89,8 @@ export class LivePrinter {
     this._bpm = 120; // for beat-based movements
     this._intervalTime = 16; // for breaking up movements, in ms
     this._stopped = false; // for manual stop during mistakes and long moves
+    this._bail = false; // whether to bail out of main loop or continue
+    this._pauseTime = 0; // time to pause in main loop
     ////////////////////////////////////////////
 
     this.totalMoveTime = 0; // time spent moving/extruding
@@ -124,7 +127,7 @@ export class LivePrinter {
     this._maxTravelSpeed = MAX_SPEED[model].maxTravel;
     this._maxPrintSpeed = MAX_SPEED[model].maxPrint;
     this._travelSpeed = this._maxTravelSpeed.x; // sensible default
-    this._printSpeed = this._maxPrintSpeed.x/3; // sensible default
+    this._printSpeed = this._maxPrintSpeed.x / 3; // sensible default
     this._speedScale = SPEED_SCALE[model];
     this._bedSize = BED_SIZE[model];
     this._extrusionInmm3 = ExtrusionInmm3[model];
@@ -155,7 +158,7 @@ export class LivePrinter {
   /**
    * Set flag for stopping all operations
    */
-  stop(state=true) {
+  stop(state = true) {
     this._stopped = state;
   }
 
@@ -1137,7 +1140,6 @@ export class LivePrinter {
    * @returns {Printer} reference to this object for chaining
    */
   async draw(dist) {
-    
     const startTime = this.totalMoveTime; // last totalMoveTime, for calc elapsed time in loop
     let totalDistance = 0; // total distance extruded
     this._distance = dist && isFinite(dist) ? dist : this._distance; // stored distance to extrude, unless otherwise specified below
@@ -1885,7 +1887,7 @@ export class LivePrinter {
 
     //TODO: fix this
     newPosition = this.clipToPrinterBounds(newPosition.axes);
-/*
+    /*
     this.printEvent({
       'type': 'info',
       'newPosition': newPosition.axes,
@@ -1921,24 +1923,16 @@ export class LivePrinter {
     // safety checks
     //
     if (extruding) {
-      if (
-        Math.abs(nozzleSpeed.axes.x) > this._maxPrintSpeed["x"]
-      ) {
+      if (Math.abs(nozzleSpeed.axes.x) > this._maxPrintSpeed["x"]) {
         throw Error("[API] X printing speed too fast:" + nozzleSpeed.axes.x);
       }
-      if (
-        Math.abs(nozzleSpeed.axes.y) > this._maxPrintSpeed["y"]
-      ) {
+      if (Math.abs(nozzleSpeed.axes.y) > this._maxPrintSpeed["y"]) {
         throw Error("[API] Y printing speed too fast:" + nozzleSpeed.axes.y);
       }
-      if (
-        Math.abs(nozzleSpeed.axes.z) > this._maxPrintSpeed["z"]
-      ) {
+      if (Math.abs(nozzleSpeed.axes.z) > this._maxPrintSpeed["z"]) {
         throw Error("[API] Z printing speed too fast:" + nozzleSpeed.axes.z);
       }
-      if (
-        Math.abs(nozzleSpeed.axes.e) > this._maxPrintSpeed["e"]
-      ) {
+      if (Math.abs(nozzleSpeed.axes.e) > this._maxPrintSpeed["e"]) {
         throw Error(
           "[API] E printing speed too fast:" +
             nozzleSpeed.axes.e +
@@ -1948,19 +1942,13 @@ export class LivePrinter {
       }
     } else {
       // just traveling
-      if (
-        Math.abs(nozzleSpeed.axes.x) > this._maxTravelSpeed["x"]
-      ) {
+      if (Math.abs(nozzleSpeed.axes.x) > this._maxTravelSpeed["x"]) {
         throw Error("[API] X travel too fast:" + nozzleSpeed.axes.x);
       }
-      if (
-        Math.abs(nozzleSpeed.axes.y) > this._maxTravelSpeed["y"]
-      ) {
+      if (Math.abs(nozzleSpeed.axes.y) > this._maxTravelSpeed["y"]) {
         throw Error("[API] Y travel too fast:" + nozzleSpeed.axes.y);
       }
-      if (
-        Math.abs(nozzleSpeed.axes.z) > this._maxTravelSpeed["z"]
-      ) {
+      if (Math.abs(nozzleSpeed.axes.z) > this._maxTravelSpeed["z"]) {
         throw Error("[API] Z travel too fast:" + nozzleSpeed.axes.z);
       }
     }
@@ -2713,6 +2701,89 @@ export class LivePrinter {
       }
     }
     return this;
+  }
+
+  /**
+   * Prime the filament for a printing operation.
+   * @param {Object} params {x, y, z, speed, e (filament length), waitTime (delay after extruding)}
+   */
+  async prime(
+    {
+      x = this.minx + 15,
+      y = this.miny + 15,
+      z = 80,
+      speed = 80,
+      e = 14,
+      waitTime = 100,
+    } = {
+      x: this.minx + 15,
+      y: this.miny + 15,
+      z: 80,
+      speed: 80,
+      e: 14,
+      waitTime: 100,
+    }
+  ) {
+    await this.moveto({ x, y, z, speed });
+    await this.unretract();
+    await this.extrude({ e, speed: 2 });
+    await this.retract();
+    await this.wait(waitTime);
+  }
+
+  /**
+   *
+   * @param {Boolean} state True to bail (stop main loop) or false to continue (default)
+   * @param {Number} height to move up when done
+   */
+  async bail(state = true, height = 5) {
+    if (state) {
+      Logger.info("BAIL: STOPPING LOOP");
+      this._bail = true;
+      await this.retract();
+
+      this.travelspeed(80);
+      await this.up(height);
+    } else {
+      this._bail = false;
+    }
+  }
+
+  /**
+   *
+   * @param {Number} t time to pause in main loop (0 if off)
+   * @returns {Number} current time to pause in main loop
+   */
+  pause(t = 100) {
+    this._pauseTime = t;
+    return this._pauseTime;
+  }
+
+  /**
+   * Run a function as a "main loop" until quit using this.bail(). Don't await this to
+   * make sure you can still break the loop later!
+   *
+   * @param {Function} func Async function to run inside loop
+   */
+  async mainloop(func) {
+    while (!this._bail) {
+      if (this._pauseTime > 0) {
+        await this.delay(this._pauseTime); // pause some amount
+        continue; // skip rest
+      } else {
+        await func();
+      }
+    }
+    // do we need to explicitly stop here?
+  }
+
+  /**
+   * Quick and dirty (and inexact!) delay function
+   * @param {Number} t time in ms
+   * @returns
+   */
+  async delay(t) {
+    return await (() => new Promise((resolve) => setTimeout(resolve, t)))(); // pause some amount
   }
 } // end Printer class
 
