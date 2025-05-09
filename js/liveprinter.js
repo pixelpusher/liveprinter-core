@@ -345,7 +345,7 @@ export class LivePrinter {
    */
   printspeed(s) {
     if (s !== undefined) {
-      const _s = this.parseAsTime(s);
+      const _s = this.parseAsNote(s);
       let maxs = this._maxPrintSpeed;
       this._printSpeed = Math.min(_s, parseFloat(maxs.x)); // pick in x direction...
     }
@@ -384,7 +384,7 @@ export class LivePrinter {
    */
   travelspeed(s) {
     if (s !== undefined) {
-      const _s = this.parseAsTime(s);
+      const _s = this.parseAsNote(s);
       let maxs = this._maxTravelSpeed;
       this._travelSpeed = Math.min(_s, parseFloat(maxs.x)); // pick in x direction...
     }
@@ -554,7 +554,7 @@ export class LivePrinter {
    */
   async retractspeed(s) {
     if (s !== undefined) {
-      const _s = this.parseAsTime(s);
+      const _s = this.parseAsNote(s);
       this._retractSpeed = _s * 60; // Marlin prefers speed in mm/min
       await this.sendFirmwareRetractSettings();
     }
@@ -1076,25 +1076,46 @@ export class LivePrinter {
 
   /**
    * Parse argument as time (10b, 1/2b, 20ms, 30s, 1000)
-   * @param {Any} time as beats, millis, seconds: 10b, 1/2b, 20ms, 30s, 1000
+   * @param {Any} note speed as midi note or just speed as mm/s
+   * @returns {Number} time in mm/s
+   */
+  parseAsNote(note, bpm = this._bpm) {
+    let targetSpeed;
+
+    if (isFinite(note)) {
+      targetSpeed = note; // number is a number, speed or time
+    } else {
+      // parse as string
+      const noteStr = (note + "").toLowerCase();
+
+      // midi note notation?
+      if (/^[a-z]/.test(noteStr)) {
+        targetSpeed = this.midi2speed(noteStr);
+      } else {
+        throw new Error(
+          `parseAsNote::Error parsing note, check the format of ${noteStr}`
+        );
+      }
+    }
+    return targetSpeed;
+  }
+
+
+  /**
+   * Parse argument as time (10b, 1/2b, 20ms, 30s, 1000)
+   * @param {Any} time time as beats, millis, seconds: 10b, 1/2b, 20ms, 30s, 1000
    * @returns {Number} time in ms
    */
   parseAsTime(time, bpm = this._bpm) {
     let targetTime;
 
-    if (isFinite(time)) {
-      targetTime = time;
+    if (isFinite(noteTime)) {
+      targetTime = time; // number is a number in ms
     } else {
       // parse as string
-      let timeStr = time + "";
-      timeStr = timeStr.toLowerCase();
-
-      if (/^[a-z]/.test(timeStr)) {
-        targetTime = this.midi2speed(timeStr);
-        return targetTime;
-      }
-
+      const timeStr = (noteTime + "").timeStr.toLowerCase();
       const params = timeStr.match(TimeRegex);
+
       if (params && params.length == 3) {
         const numberParam = eval(params[1]); // easiest way to parse as number
         switch (
@@ -1802,7 +1823,7 @@ export class LivePrinter {
 
     // check if speed is passed in
     // if auto extrusion, or some extrusion was specified, speed is print speed
-    let _speed = parseFloat(
+    const _speed = this.parseAsNote(
       params.speed !== undefined
         ? params.speed
         : extruding
@@ -1810,6 +1831,7 @@ export class LivePrinter {
         : this._travelSpeed
     );
 
+    
     // update layer height if necessary
     this.layerHeight = parseFloat(
       params.thickness !== undefined ? params.thickness : this.layerHeight
@@ -2078,7 +2100,7 @@ export class LivePrinter {
    */
   async move(params) {
     //otherwise, handle cartesian coordinates mode
-    let newparams = {};
+    const newparams = {};
     newparams.x =
       params.x !== undefined ? parseFloat(params.x) + this.x : this.x;
     newparams.y =
@@ -2086,8 +2108,7 @@ export class LivePrinter {
     newparams.z =
       params.z !== undefined ? parseFloat(params.z) + this.z : this.z;
     newparams.e = this.e;
-    if (params.speed !== undefined) this.travelspeed(parseFloat(params.speed));
-    newparams.speed = this._travelSpeed; // update travel speed
+    newparams.speed = params.speed; // handle in extrudeto
 
     // extrude using absolute cartesian coords
     return this.extrudeto(newparams);
@@ -2100,9 +2121,6 @@ export class LivePrinter {
    */
   async moveto(params) {
     params.e = this.e;
-    params.speed =
-      params.speed === undefined ? this._travelSpeed : parseFloat(params.speed);
-    this._travelSpeed = params.speed; // update travel speed
     return this.extrudeto(params);
   }
 
@@ -2244,7 +2262,7 @@ export class LivePrinter {
    */
   t2d(time, speed = this._travelSpeed) {
     const t = this.parseAsTime(time);
-    const s = this.parseAsTime(speed);
+    const s = this.parseAsNote(speed);
     this._distance = this.t2mm(t, s); // time in ms
     return this;
   }
@@ -2256,7 +2274,7 @@ export class LivePrinter {
    */
   t2mm(time, speed = this._printSpeed) {
     const t = this.parseAsTime(time);
-    const s = this.parseAsTime(speed);
+    const s = this.parseAsNote(speed);
     return (s * t) / 1000; // time in ms
   }
 
@@ -2290,7 +2308,7 @@ export class LivePrinter {
    * @returns {Number} time of movement in ms
    */
   d2t(_dist = this._distance, _speed = this._printSpeed) {
-    return Math.abs(_dist) * _speed;
+    return Math.abs(_dist) * this.parseAsNote(_speed);
   }
 
   /**

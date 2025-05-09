@@ -238,8 +238,8 @@ class Vector {
 }
 String.prototype.reverse = function() {
   const t = /([\0-\u02FF\u0370-\u1AAF\u1B00-\u1DBF\u1E00-\u20CF\u2100-\uD7FF\uE000-\uFE1F\uFE30-\uFFFF]|[\uD800-\uDBFF][\uDC00-\uDFFF]|[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?:[^\uD800-\uDBFF]|^)[\uDC00-\uDFFF])([\u0300-\u036F\u1AB0-\u1AFF\u1DC0-\u1DFF\u20D0-\u20FF\uFE20-\uFE2F]+)/g, e = /([\uD800-\uDBFF])([\uDC00-\uDFFF])/g;
-  let i = this.replace(t, function(a, d, u) {
-    return u.reverse() + d;
+  let i = this.replace(t, function(a, d, l) {
+    return l.reverse() + d;
   }).replace(e, "$2$1"), r = "", s = i.length;
   for (; s--; )
     r += i.charAt(s);
@@ -568,20 +568,20 @@ function isChroma(t) {
   return REGEX.test(t);
 }
 var dictionary = function(t) {
-  var e = Object.keys(t).sort(), i = [], r = [], s = function(u, x, P) {
-    i[u] = x, r[P] = r[P] || [], r[P].push(u);
+  var e = Object.keys(t).sort(), i = [], r = [], s = function(l, x, P) {
+    i[l] = x, r[P] = r[P] || [], r[P].push(l);
   };
-  e.forEach(function(u) {
-    var x = t[u][0].split(" "), P = t[u][1], y = chroma(x);
-    s(u, x, y), P && P.forEach(function(p) {
+  e.forEach(function(l) {
+    var x = t[l][0].split(" "), P = t[l][1], y = chroma(x);
+    s(l, x, y), P && P.forEach(function(p) {
       return s(p, x, y);
     });
   });
-  var a = Object.keys(i).sort(), d = function(u) {
-    return i[u];
+  var a = Object.keys(i).sort(), d = function(l) {
+    return i[l];
   };
-  return d.names = function(u) {
-    return typeof u == "string" ? (r[u] || []).slice() : (u === !0 ? a : e).slice();
+  return d.names = function(l) {
+    return typeof l == "string" ? (r[l] || []).slice() : (l === !0 ? a : e).slice();
   }, d;
 }, scale = dictionary(sdata), chord = dictionary(cdata);
 scale.names;
@@ -875,7 +875,7 @@ class LivePrinter {
    */
   printspeed(t) {
     if (t !== void 0) {
-      const e = this.parseAsTime(t);
+      const e = this.parseAsNote(t);
       let i = this._maxPrintSpeed;
       this._printSpeed = Math.min(e, parseFloat(i.x));
     }
@@ -912,7 +912,7 @@ class LivePrinter {
    */
   travelspeed(t) {
     if (t !== void 0) {
-      const e = this.parseAsTime(t);
+      const e = this.parseAsNote(t);
       let i = this._maxTravelSpeed;
       this._travelSpeed = Math.min(e, parseFloat(i.x));
     }
@@ -1057,7 +1057,7 @@ class LivePrinter {
    */
   async retractspeed(t) {
     if (t !== void 0) {
-      const e = this.parseAsTime(t);
+      const e = this.parseAsNote(t);
       this._retractSpeed = e * 60, await this.sendFirmwareRetractSettings();
     }
     return this._retractSpeed;
@@ -1352,7 +1352,7 @@ class LivePrinter {
       if (this._stopped)
         throw new Exception("drawtime() manually stopped");
       s--;
-      const a = performance.now(), d = this.x, u = this.y, x = this.z, P = this.totalMoveTime - e, y = this._timeWarp({
+      const a = performance.now(), d = this.x, l = this.y, x = this.z, P = this.totalMoveTime - e, y = this._timeWarp({
         dt: this._intervalTime,
         t: P,
         tt: this.totalMoveTime
@@ -1365,7 +1365,7 @@ class LivePrinter {
         t: P,
         tt: this.totalMoveTime
       });
-      h = n, Math.abs(v) > Number.EPSILON && (h = n * Math.cos(v), f = n * Math.sin(v)), r.x = d + h * Math.cos(c), r.y = u + h * Math.sin(c), r.z = x + f, await this.extrudeto(r), Logger.debug(
+      h = n, Math.abs(v) > Number.EPSILON && (h = n * Math.cos(v), f = n * Math.sin(v)), r.x = d + h * Math.cos(c), r.y = l + h * Math.sin(c), r.z = x + f, await this.extrudeto(r), Logger.debug(
         `Move time warp op took ${performance.now() - a} ms vs. expected ${this._intervalTime}.`
       );
     }
@@ -1378,18 +1378,35 @@ class LivePrinter {
   }
   /**
    * Parse argument as time (10b, 1/2b, 20ms, 30s, 1000)
-   * @param {Any} time as beats, millis, seconds: 10b, 1/2b, 20ms, 30s, 1000
+   * @param {Any} note speed as midi note or just speed as mm/s
+   * @returns {Number} time in mm/s
+   */
+  parseAsNote(t, e = this._bpm) {
+    let i;
+    if (isFinite(t))
+      i = t;
+    else {
+      const r = (t + "").toLowerCase();
+      if (/^[a-z]/.test(r))
+        i = this.midi2speed(r);
+      else
+        throw new Error(
+          `parseAsNote::Error parsing note, check the format of ${r}`
+        );
+    }
+    return i;
+  }
+  /**
+   * Parse argument as time (10b, 1/2b, 20ms, 30s, 1000)
+   * @param {Any} time time as beats, millis, seconds: 10b, 1/2b, 20ms, 30s, 1000
    * @returns {Number} time in ms
    */
   parseAsTime(time, bpm = this._bpm) {
     let targetTime;
-    if (isFinite(time))
+    if (isFinite(noteTime))
       targetTime = time;
     else {
-      let timeStr = time + "";
-      if (timeStr = timeStr.toLowerCase(), /^[a-z]/.test(timeStr))
-        return targetTime = this.midi2speed(timeStr), targetTime;
-      const params = timeStr.match(TimeRegex);
+      const timeStr = (noteTime + "").timeStr.toLowerCase(), params = timeStr.match(TimeRegex);
       if (params && params.length == 3) {
         const numberParam = eval(params[1]);
         switch (params[2]) {
@@ -1435,7 +1452,7 @@ class LivePrinter {
       if (this._stopped)
         throw new Exception("draw() manually stopped");
       a--;
-      const d = this.totalMoveTime - e, u = performance.now(), x = this.x, P = this.y, y = this.z, p = this._timeWarp({
+      const d = this.totalMoveTime - e, l = performance.now(), x = this.x, P = this.y, y = this.z, p = this._timeWarp({
         dt: this._intervalTime,
         t: d,
         tt: this.totalMoveTime
@@ -1454,7 +1471,7 @@ class LivePrinter {
       }
       let v = h * Math.sin(c), w = h * Math.cos(c);
       s.x = x + w * Math.cos(n), s.y = P + w * Math.sin(n), s.z = y + v, await this.extrudeto(s), i += f, Logger.debug(
-        `Move draw warp op took ${performance.now() - u} ms vs. expected ${this._intervalTime}.`
+        `Move draw warp op took ${performance.now() - l} ms vs. expected ${this._intervalTime}.`
       );
     }
     return this._elevation = 0, this._distance = 0, await this.printEvent({
@@ -1508,7 +1525,7 @@ class LivePrinter {
    * @returns {Printer} Reference to this object for chaining
    */
   run(t) {
-    const e = "M", i = "E", r = "L", s = "R", a = "U", d = "D", u = "<", x = ">", P = /([a-zA-Z<>][0-9]+\.?[0-9]*)/gim, y = /([a-zA-Z<>])([0-9]+\.?[0-9]*)/, p = t.match(P);
+    const e = "M", i = "E", r = "L", s = "R", a = "U", d = "D", l = "<", x = ">", P = /([a-zA-Z<>][0-9]+\.?[0-9]*)/gim, y = /([a-zA-Z<>])([0-9]+\.?[0-9]*)/, p = t.match(P);
     for (let f of p) {
       let h = f.match(y);
       if (h.length !== 3)
@@ -1533,7 +1550,7 @@ class LivePrinter {
         case d:
           this.down(c).go();
           break;
-        case u:
+        case l:
           this.retract(c);
           break;
         case x:
@@ -1670,16 +1687,16 @@ class LivePrinter {
       if (this._stopped)
         throw new Exception("travel() manually stopped");
       a--;
-      const d = performance.now(), u = this.totalMoveTime - e, x = this.x, P = this.y, y = this.z, p = this._timeWarp({
+      const d = performance.now(), l = this.totalMoveTime - e, x = this.x, P = this.y, y = this.z, p = this._timeWarp({
         dt: this._intervalTime,
-        t: u,
+        t: l,
         tt: this.totalMoveTime
       }), f = Math.min(this.t2mm(p), r - i);
       let h = 0, n = f, { d: c, heading: v, elevation: w } = this._warp({
         d: f,
         heading: this._heading,
         elevation: this._elevation,
-        t: u,
+        t: l,
         tt: this.totalMoveTime
       });
       if (f + w < 1e-5) break;
@@ -1716,7 +1733,7 @@ class LivePrinter {
       end: i
     }); s && this.totalMoveTime < i; ) {
       s--;
-      const a = performance.now(), d = this.x, u = this.y, x = this.z, P = this.totalMoveTime - e, y = this._timeWarp({
+      const a = performance.now(), d = this.x, l = this.y, x = this.z, P = this.totalMoveTime - e, y = this._timeWarp({
         dt: this._intervalTime,
         t: P,
         tt: this.totalMoveTime
@@ -1728,7 +1745,7 @@ class LivePrinter {
         t: P,
         tt: this.totalMoveTime
       });
-      h = n, Math.abs(v) > Number.EPSILON && (h = n * Math.cos(v), f = n * Math.sin(v)), r.x = d + h * Math.cos(c), r.y = u + h * Math.sin(c), r.z = x + f, await this.moveto(r), Logger.debug(
+      h = n, Math.abs(v) > Number.EPSILON && (h = n * Math.cos(v), f = n * Math.sin(v)), r.x = d + h * Math.cos(c), r.y = l + h * Math.sin(c), r.z = x + f, await this.moveto(r), Logger.debug(
         `Move time warp op took ${performance.now() - a} ms vs. expected ${this._intervalTime}.`
       );
     }
@@ -1784,10 +1801,11 @@ class LivePrinter {
    * @returns {Printer} reference to this object for chaining
    */
   async extrudeto(t) {
-    const e = t.e === void 0, i = t.x !== void 0 ? parseFloat(t.x) : this.x, r = t.y !== void 0 ? parseFloat(t.y) : this.y, s = t.z !== void 0 ? parseFloat(t.z) : this.z, a = t.e !== void 0 ? parseFloat(t.e) : this.e, d = Math.abs(a - this.e) > 1e-4, u = e || d, x = e && d && (t.retract === !0 || t.retract === void 0 && this._autoRetract);
+    const e = t.e === void 0, i = t.x !== void 0 ? parseFloat(t.x) : this.x, r = t.y !== void 0 ? parseFloat(t.y) : this.y, s = t.z !== void 0 ? parseFloat(t.z) : this.z, a = t.e !== void 0 ? parseFloat(t.e) : this.e, d = Math.abs(a - this.e) > 1e-4, l = e || d, x = e && d && (t.retract === !0 || t.retract === void 0 && this._autoRetract);
     !e && d && (this.currentRetraction = 0), x && await this.unretract();
-    let P = new Vector({ x: i, y: r, z: s, e: a }), y = parseFloat(
-      t.speed !== void 0 ? t.speed : u ? this._printSpeed : this._travelSpeed
+    let P = new Vector({ x: i, y: r, z: s, e: a });
+    const y = this.parseAsNote(
+      t.speed !== void 0 ? t.speed : l ? this._printSpeed : this._travelSpeed
     );
     this.layerHeight = parseFloat(
       t.thickness !== void 0 ? t.thickness : this.layerHeight
@@ -1813,7 +1831,7 @@ class LivePrinter {
     if (n < 1e-3)
       throw this.errorEvent("[API] total move time too short:" + n), new Error("[API] move time too short:" + n);
     const c = Vector.div(p, n / 1e3);
-    if (u) {
+    if (l) {
       if (Math.abs(c.axes.x) > this._maxPrintSpeed.x)
         throw Error("[API] X printing speed too fast:" + c.axes.x);
       if (Math.abs(c.axes.y) > this._maxPrintSpeed.y)
@@ -1833,7 +1851,7 @@ class LivePrinter {
         throw Error("[API] Z travel too fast:" + c.axes.z);
     }
     const v = { ...this.position.axes };
-    this.position.set(P), await this.sendExtrusionGCode(y), u ? await this.printEvent({
+    this.position.set(P), await this.sendExtrusionGCode(y), l ? await this.printEvent({
       type: "extrude",
       newPosition: { ...this.position.axes },
       oldPosition: { ...v },
@@ -1896,8 +1914,8 @@ class LivePrinter {
    * @returns {Printer} reference to this object for chaining
    */
   async move(t) {
-    let e = {};
-    return e.x = t.x !== void 0 ? parseFloat(t.x) + this.x : this.x, e.y = t.y !== void 0 ? parseFloat(t.y) + this.y : this.y, e.z = t.z !== void 0 ? parseFloat(t.z) + this.z : this.z, e.e = this.e, t.speed !== void 0 && this.travelspeed(parseFloat(t.speed)), e.speed = this._travelSpeed, this.extrudeto(e);
+    const e = {};
+    return e.x = t.x !== void 0 ? parseFloat(t.x) + this.x : this.x, e.y = t.y !== void 0 ? parseFloat(t.y) + this.y : this.y, e.z = t.z !== void 0 ? parseFloat(t.z) + this.z : this.z, e.e = this.e, e.speed = t.speed, this.extrudeto(e);
   }
   // end move
   /**
@@ -1906,7 +1924,7 @@ class LivePrinter {
    * @returns {Printer} reference to this object for chaining
    */
   async moveto(t) {
-    return t.e = this.e, t.speed = t.speed === void 0 ? this._travelSpeed : parseFloat(t.speed), this._travelSpeed = t.speed, this.extrudeto(t);
+    return t.e = this.e, this.extrudeto(t);
   }
   /**
    * Turn (clockwise positive, CCW negative)
@@ -1980,16 +1998,16 @@ class LivePrinter {
   note(t = 40, e = 200, i = "x") {
     const r = [];
     r.push(...i);
-    let s = 0, a = 0, d = 0, u = 0;
+    let s = 0, a = 0, d = 0, l = 0;
     for (const x of r)
       if (t < 10) {
         this._waitTime = e;
         break;
       } else {
         let P = this.midi2speed(t, x);
-        s += P * P, x === "x" ? this._heading < Math.PI / 2 && this._heading > -Math.PI / 2 ? d = -90 : d = 90 : x === "y" ? this._heading > 0 && this._heading < Math.PI ? a = 90 : a = -90 : x === "z" && (this._elevation > 0 ? u = Math.PI / 2 : u = -Math.PI / 2);
+        s += P * P, x === "x" ? this._heading < Math.PI / 2 && this._heading > -Math.PI / 2 ? d = -90 : d = 90 : x === "y" ? this._heading > 0 && this._heading < Math.PI ? a = 90 : a = -90 : x === "z" && (this._elevation > 0 ? l = Math.PI / 2 : l = -Math.PI / 2);
       }
-    return this._heading = Math.atan2(a, d), this._elevation = u, this._distance = this.printpeed(Math.sqrt(s)) * e / 1e3, this;
+    return this._heading = Math.atan2(a, d), this._elevation = l, this._distance = this.printpeed(Math.sqrt(s)) * e / 1e3, this;
   }
   /**
    * Set the movement distance based on a target amount of time to move. (Uses current print speed to calculate)
@@ -1997,7 +2015,7 @@ class LivePrinter {
    * @returns {Printer} reference to this object for chaining
    */
   t2d(t, e = this._travelSpeed) {
-    const i = this.parseAsTime(t), r = this.parseAsTime(e);
+    const i = this.parseAsTime(t), r = this.parseAsNote(e);
     return this._distance = this.t2mm(i, r), this;
   }
   /**
@@ -2007,7 +2025,7 @@ class LivePrinter {
    */
   t2mm(t, e = this._printSpeed) {
     const i = this.parseAsTime(t);
-    return this.parseAsTime(e) * i / 1e3;
+    return this.parseAsNote(e) * i / 1e3;
   }
   /**
    * Calculate the movement distance based on a midi note and the current bpm.
@@ -2036,7 +2054,7 @@ class LivePrinter {
    * @returns {Number} time of movement in ms
    */
   d2t(t = this._distance, e = this._printSpeed) {
-    return Math.abs(t) * e;
+    return Math.abs(t) * this.parseAsNote(e);
   }
   /**
    * Fills an area based on layerHeight (as thickness of each line)
@@ -2122,13 +2140,13 @@ class LivePrinter {
     w: s = 0,
     h: a = 0,
     useaspect: d = !0,
-    passes: u = 1,
+    passes: l = 1,
     safeZ: x = 0
   }) {
-    x = x || this.layerHeight * u + 10;
+    x = x || this.layerHeight * l + 10;
     let P = 1 / 0, y = 1 / 0, p = -1 / 0, f = -1 / 0, h = t.length;
     for (; h--; ) {
-      let g = t[h].length, l = {
+      let g = t[h].length, u = {
         x: 1 / 0,
         y: 1 / 0,
         x2: -1 / 0,
@@ -2136,8 +2154,8 @@ class LivePrinter {
         area: 0
       };
       for (; g--; )
-        P = Math.min(t[h][g][0], P), y = Math.min(t[h][g][1], y), p = Math.max(t[h][g][0], p), f = Math.max(t[h][g][1], f), t[h][g][0] < l.x && (l.x = t[h][g][0]), t[h][g][1] < l.y && (l.y = t[h][g][0]), t[h][g][0] > l.x2 && (l.x2 = t[h][g][0]), t[h][g][1] > l.y2 && (l.y2 = t[h][g][0]);
-      l.area = (1 + l.x2 - l.x) * (1 + l.y2 - l.y), t[h].bounds = l;
+        P = Math.min(t[h][g][0], P), y = Math.min(t[h][g][1], y), p = Math.max(t[h][g][0], p), f = Math.max(t[h][g][1], f), t[h][g][0] < u.x && (u.x = t[h][g][0]), t[h][g][1] < u.y && (u.y = t[h][g][0]), t[h][g][0] > u.x2 && (u.x2 = t[h][g][0]), t[h][g][1] > u.y2 && (u.y2 = t[h][g][0]);
+      u.area = (1 + u.x2 - u.x) * (1 + u.y2 - u.y), t[h].bounds = u;
     }
     const n = p - P, c = f - y, v = s && a, w = s || a;
     if (!v)
@@ -2152,12 +2170,12 @@ class LivePrinter {
       else
         s = n, a = c;
     const E = makeMapping([P, p], [i, i + s]), A = makeMapping([y, f], [e, e + a]);
-    t.sort(function(g, l) {
-      return g.bounds.x < l.bounds.x ? -1 : 1;
+    t.sort(function(g, u) {
+      return g.bounds.x < u.bounds.x ? -1 : 1;
     });
-    for (let g = 0, l = t.length; g < l; g++) {
+    for (let g = 0, u = t.length; g < u; g++) {
       let _ = t[g].slice();
-      for (let T = 1; T <= u; T++) {
+      for (let T = 1; T <= l; T++) {
         const b = T * this.layerHeight + r;
         await this.moveto({
           x: E(_[0][0]),
@@ -2171,7 +2189,7 @@ class LivePrinter {
             retract: !1
           });
         }
-        T < u ? _.reverse() : (await this.retract(), await this.moveto({ z: x }));
+        T < l ? _.reverse() : (await this.retract(), await this.moveto({ z: x }));
       }
     }
     return this;
@@ -2196,44 +2214,44 @@ class LivePrinter {
     w: s = 0,
     h: a = 0,
     t: d = 1,
-    useaspect: u = !0,
+    useaspect: l = !0,
     passes: x = 1,
     safeZ: P = 0
   }) {
     P = P || this.layerHeight * x + 10, d = this.layerHeight * 2.5 * d;
     let y = 1 / 0, p = 1 / 0, f = -1 / 0, h = -1 / 0, n = t.length;
     for (; n--; ) {
-      let l = t[n].length, _ = {
+      let u = t[n].length, _ = {
         x: 1 / 0,
         y: 1 / 0,
         x2: -1 / 0,
         y2: -1 / 0,
         area: 0
       };
-      for (; l--; )
-        y = Math.min(t[n][l][0], y), p = Math.min(t[n][l][1], p), f = Math.max(t[n][l][0], f), h = Math.max(t[n][l][1], h), t[n][l][0] < _.x && (_.x = t[n][l][0]), t[n][l][1] < _.y && (_.y = t[n][l][0]), t[n][l][0] > _.x2 && (_.x2 = t[n][l][0]), t[n][l][1] > _.y2 && (_.y2 = t[n][l][0]);
+      for (; u--; )
+        y = Math.min(t[n][u][0], y), p = Math.min(t[n][u][1], p), f = Math.max(t[n][u][0], f), h = Math.max(t[n][u][1], h), t[n][u][0] < _.x && (_.x = t[n][u][0]), t[n][u][1] < _.y && (_.y = t[n][u][0]), t[n][u][0] > _.x2 && (_.x2 = t[n][u][0]), t[n][u][1] > _.y2 && (_.y2 = t[n][u][0]);
       t[n].bounds = _;
     }
     const c = f - y, v = h - p, w = s && a, E = s || a;
     if (!w)
       if (E)
         if (s > 0) {
-          const l = v / c;
-          a = s * l;
+          const u = v / c;
+          a = s * u;
         } else {
-          const l = c / v;
-          s = a * l;
+          const u = c / v;
+          s = a * u;
         }
       else
         s = c, a = v;
     const A = makeMapping([y, f], [i, i + s]), g = makeMapping([p, h], [e, e + a]);
-    t.sort(function(l, _) {
-      return l.bounds.x < _.bounds.x ? -1 : 1;
+    t.sort(function(u, _) {
+      return u.bounds.x < _.bounds.x ? -1 : 1;
     });
-    for (let l = 1; l <= x; l++)
+    for (let u = 1; u <= x; u++)
       for (let _ = 0, T = t.length; _ < T; _++) {
         let b = t[_].slice();
-        const F = l * this.layerHeight + r;
+        const F = u * this.layerHeight + r;
         if (await this.moveto({
           x: A(b[0][0]),
           y: g(b[0][1])
@@ -2247,7 +2265,7 @@ class LivePrinter {
             R !== j ? (await this.drawfill(I || 2, S || 2, d), I = S = 0, this.turn(R), j = R) : (I += k, S += O);
           }
         }
-        l < x ? b.reverse() : await this.moveto({ z: P });
+        u < x ? b.reverse() : await this.moveto({ z: P });
       }
     return this;
   }
