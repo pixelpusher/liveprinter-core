@@ -1109,11 +1109,11 @@ export class LivePrinter {
   parseAsTime(time, bpm = this._bpm) {
     let targetTime;
 
-    if (isFinite(noteTime)) {
+    if (isFinite(time)) {
       targetTime = time; // number is a number in ms
     } else {
       // parse as string
-      const timeStr = (noteTime + "").timeStr.toLowerCase();
+      const timeStr = (time + "").toLowerCase();
       const params = timeStr.match(TimeRegex);
 
       if (params && params.length == 3) {

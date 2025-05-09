@@ -1403,10 +1403,10 @@ class LivePrinter {
    */
   parseAsTime(time, bpm = this._bpm) {
     let targetTime;
-    if (isFinite(noteTime))
+    if (isFinite(time))
       targetTime = time;
     else {
-      const timeStr = (noteTime + "").timeStr.toLowerCase(), params = timeStr.match(TimeRegex);
+      const timeStr = (time + "").toLowerCase(), params = timeStr.match(TimeRegex);
       if (params && params.length == 3) {
         const numberParam = eval(params[1]);
         switch (params[2]) {
