@@ -806,7 +806,7 @@ export class LivePrinter {
    * @param {Object} coordinates (x,y,z coordinates and target time in any time notation (sets speed))
    * @returns {Object} this instance for chaining
    */
-  to({ x, y, z, t } = {}) {
+  to({ x, y, z, t, note } = {}) {
     const targetVec = new Vector(
       x ? x : this.x,
       y ? y : this.y,
@@ -836,6 +836,9 @@ export class LivePrinter {
     // multiply by 1000 to get mm/s
     if (t) {
       this.speed((1000 * this._distance) / this.parseAsTime(t));
+    }
+    else if (note) {
+      this.speed(note);
     }
 
     return this;
