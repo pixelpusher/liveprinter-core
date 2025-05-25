@@ -2099,11 +2099,11 @@ class LivePrinter {
   }
   /**
    * Causes the printer to wait for a number of milliseconds
-   * @param {float} ms to wait
+   * @param {Number or String} t time to wait in ms, beats, etc.
    * @returns {Printer} reference to this object for chaining
    */
   async wait(t = this._waitTime) {
-    return await this.gcodeEvent("G4 P" + t), this._waitTime = 0, this;
+    return this.parseAsTime(t), await this.gcodeEvent("G4 P" + ms), this._waitTime = 0, this;
   }
   /**
    * Temporarily pause the printer: move the head up, turn off fan & temp
