@@ -2375,11 +2375,12 @@ export class LivePrinter {
 
   /**
    * Causes the printer to wait for a number of milliseconds
-   * @param {float} ms to wait
+   * @param {Number or String} t time to wait in ms, beats, etc.
    * @returns {Printer} reference to this object for chaining
    */
-  async wait(ms = this._waitTime) {
-    await this.gcodeEvent("G4 P" + ms);
+  async wait(t = this._waitTime) {
+    const tt = this.parseAsTime(t);
+    await this.gcodeEvent("G4 P" + t);
     this._waitTime = 0;
     return this;
   }
