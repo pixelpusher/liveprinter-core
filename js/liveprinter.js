@@ -87,7 +87,7 @@ export class LivePrinter {
     this._waitTime = 0;
     this._autoRetract = true; // automatically unretract/retract - see get/set autoretract
     this._bpm = 120; // for beat-based movements
-    this._intervalTime = 16; // for breaking up movements, in ms
+    this._intervalTime = this.parseAsTime('1/4b'); // for breaking up movements, in ms
     this._stopped = false; // for manual stop during mistakes and long moves
     this._bail = false; // whether to bail out of main loop or continue
     this._pauseTime = 0; // time to pause in main loop
@@ -514,7 +514,11 @@ export class LivePrinter {
    * @param {Number} beats Beats per minute
    */
   bpm(beats = this._bpm) {
+    const oldBpm = this._bpm;
+    
     this._bpm = beats;
+    // recalculate interval time
+    this._intervalTime = this._intervalTime * oldBpm/this._bpm;
     return this._bpm;
   }
 
@@ -1078,9 +1082,9 @@ export class LivePrinter {
   }
 
   /**
-   * Parse argument as time (10b, 1/2b, 20ms, 30s, 1000)
-   * @param {Any} note speed as midi note or just speed as mm/s
-   * @returns {Number} time in mm/s
+   * Parse argument as midi note ('a4', 'bb5' etc)
+   * @param {Any} note note as midi note or just speed as mm/s
+   * @returns {Number} speed in mm/s
    */
   parseAsNote(note, bpm = this._bpm) {
     let targetSpeed;
@@ -2313,6 +2317,9 @@ export class LivePrinter {
   d2t(_dist = this._distance, _speed = this._printSpeed) {
     return Math.abs(_dist) * this.parseAsNote(_speed);
   }
+
+  
+
 
   /**
    * Fills an area based on layerHeight (as thickness of each line)

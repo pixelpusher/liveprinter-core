@@ -680,7 +680,7 @@ class LivePrinter {
    * @param {String} model Valid model from printers.js
    */
   constructor(t = "UM2plus") {
-    this.ext = this.extrude, this.ext2 = this.extrudeto, this.mov = this.move, this.mov2 = this.moveto, this.tur = this.turn, this.tur2 = this.turnto, this.ret = this.retract, this.unret = this.unretract, this.gcodeListeners = [], this.printListeners = [], this.errorListeners = [], this.opListeners = [], this._layerHeight = 0.2, this.lastSpeed = -1, this._heading = 0, this._elevation = 0, this._distance = 0, this._waitTime = 0, this._autoRetract = !0, this._bpm = 120, this._intervalTime = 16, this._stopped = !1, this._bail = !1, this._pauseTime = 0, this.totalMoveTime = 0, this.maxFilamentPerOperation = 30, this.minFilamentPerOperation = 2e-4, this.maxTimePerOperation = 6e4, this.currentRetraction = 0, this.retractLength = 8.5, this._retractSpeed = 30 * 60, this.firmwareRetract = !1, this.extraUnretract = 0, this.unretractZHop = 0, this.boundaryMode = "stop", this.maxMovePerCycle = 200, this.setProperties(t);
+    this.ext = this.extrude, this.ext2 = this.extrudeto, this.mov = this.move, this.mov2 = this.moveto, this.tur = this.turn, this.tur2 = this.turnto, this.ret = this.retract, this.unret = this.unretract, this.gcodeListeners = [], this.printListeners = [], this.errorListeners = [], this.opListeners = [], this._layerHeight = 0.2, this.lastSpeed = -1, this._heading = 0, this._elevation = 0, this._distance = 0, this._waitTime = 0, this._autoRetract = !0, this._bpm = 120, this._intervalTime = this.parseAsTime("1/4b"), this._stopped = !1, this._bail = !1, this._pauseTime = 0, this.totalMoveTime = 0, this.maxFilamentPerOperation = 30, this.minFilamentPerOperation = 2e-4, this.maxTimePerOperation = 6e4, this.currentRetraction = 0, this.retractLength = 8.5, this._retractSpeed = 30 * 60, this.firmwareRetract = !1, this.extraUnretract = 0, this.unretractZHop = 0, this.boundaryMode = "stop", this.maxMovePerCycle = 200, this.setProperties(t);
   }
   /**
    * Set default properties for the printer based on the printer model, e.g. bed size, speeds
@@ -1027,7 +1027,8 @@ class LivePrinter {
    * @param {Number} beats Beats per minute
    */
   bpm(t = this._bpm) {
-    return this._bpm = t, this._bpm;
+    const e = this._bpm;
+    return this._bpm = t, this._intervalTime = this._intervalTime * e / this._bpm, this._bpm;
   }
   /**
    * set bps for printer, for calculating beat-based movements
@@ -1377,9 +1378,9 @@ class LivePrinter {
     }), this;
   }
   /**
-   * Parse argument as time (10b, 1/2b, 20ms, 30s, 1000)
-   * @param {Any} note speed as midi note or just speed as mm/s
-   * @returns {Number} time in mm/s
+   * Parse argument as midi note ('a4', 'bb5' etc)
+   * @param {Any} note note as midi note or just speed as mm/s
+   * @returns {Number} speed in mm/s
    */
   parseAsNote(t, e = this._bpm) {
     let i;
