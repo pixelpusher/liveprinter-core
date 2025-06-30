@@ -669,7 +669,7 @@ const GCODE_HEADER = {
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-const MinLayerHeight = 0.05, MIN_INTERVAL = 5.357, TimeRegex = /(\d+|\d+\.\d+|\d+\/\d+)(s|ms|b)/i;
+const MinLayerHeight = 0.05, MIN_INTERVAL = 5.357, TimeRegex = /^(\d+|\d+\.\d+|\d+\/\d+|\d+\s+\d+\/\d+)(s|ms|b)/i, DimensionRegex = /(\d+|\d+\.\d+|\d+\/\d+)(cm|mm|in)/i;
 class LivePrinter {
   ///////
   // Printer API /////////////////
@@ -1378,21 +1378,32 @@ class LivePrinter {
     }), this;
   }
   /**
-   * Parse argument as midi note ('a4', 'bb5' etc)
+   * Parse argument as midi note ('a4', 'bb5' etc) or frequency in hz as '11.23hz' or '330hz' etc
    * @param {Any} note note as midi note or just speed as mm/s
    * @returns {Number} speed in mm/s
    */
   parseAsNote(t, e = this._bpm) {
     let i;
     if (isFinite(t))
-      i = t;
+      i = typeof t == "number" ? t : Number(t);
     else {
-      const r = (t + "").toLowerCase();
-      if (/^[a-z]/.test(r))
+      if (typeof t != "string" && t.length < 1)
+        throw new Error(
+          `parseAsNote::Error parsing note, wrong type of argument or empty string ${t}::${typeof t}`
+        );
+      const r = t.trim().toLowerCase();
+      if (r.endsWith("hz")) {
+        const s = parseFloat(r.slice(0, -2));
+        if (isNaN(s))
+          throw new Error(
+            `parseAsNote::Error parsing note, check the format of ${r}`
+          );
+        i = s / parseFloat(this.speedScale().x);
+      } else if (/^[a-zA-Z]/.test(r))
         i = this.midi2speed(r);
       else
         throw new Error(
-          `parseAsNote::Error parsing note, check the format of ${r}`
+          `parseAsNote::Error parsing note, check the format of ${t}`
         );
     }
     return i;
@@ -1405,11 +1416,11 @@ class LivePrinter {
   parseAsTime(time, bpm = this._bpm) {
     let targetTime;
     if (isFinite(time))
-      targetTime = time;
+      targetTime = typeof time == "number" ? time : Number(time);
     else {
       const timeStr = (time + "").toLowerCase(), params = timeStr.match(TimeRegex);
       if (params && params.length == 3) {
-        const numberParam = eval(params[1]);
+        const numberParam = params[1].split(" ").reduce((accum, curr) => accum + eval(curr), 0);
         switch (params[2]) {
           case "s":
             targetTime = numberParam / 1e3;
@@ -1470,8 +1481,8 @@ class LivePrinter {
         );
         break;
       }
-      let v = h * Math.sin(c), w = h * Math.cos(c);
-      s.x = x + w * Math.cos(n), s.y = P + w * Math.sin(n), s.z = y + v, await this.extrudeto(s), i += f, Logger.debug(
+      let v = h * Math.sin(c), b = h * Math.cos(c);
+      s.x = x + b * Math.cos(n), s.y = P + b * Math.sin(n), s.z = y + v, await this.extrudeto(s), i += f, Logger.debug(
         `Move draw warp op took ${performance.now() - d} ms vs. expected ${this._intervalTime}.`
       );
     }
@@ -1693,15 +1704,15 @@ class LivePrinter {
         t: d,
         tt: this.totalMoveTime
       }), f = Math.min(this.t2mm(p), r - i);
-      let h = 0, n = f, { d: c, heading: v, elevation: w } = this._warp({
+      let h = 0, n = f, { d: c, heading: v, elevation: b } = this._warp({
         d: f,
         heading: this._heading,
         elevation: this._elevation,
         t: d,
         tt: this.totalMoveTime
       });
-      if (f + w < 1e-5) break;
-      n = c, Math.abs(w) > Number.EPSILON && (n = c * Math.cos(w), h = c * Math.sin(w)), s.x = x + n * Math.cos(v), s.y = P + n * Math.sin(v), s.z = y + h, await this.moveto(s), i += f, Logger.debug(
+      if (f + b < 1e-5) break;
+      n = c, Math.abs(b) > Number.EPSILON && (n = c * Math.cos(b), h = c * Math.sin(b)), s.x = x + n * Math.cos(v), s.y = P + n * Math.sin(v), s.z = y + h, await this.moveto(s), i += f, Logger.debug(
         `Move time warp op (${p}) took ${performance.now() - l} ms vs. expected ${this._intervalTime}.`
       ), await this.printEvent({
         type: "travel-end",
@@ -1792,6 +1803,59 @@ class LivePrinter {
     return this._autoRetract = i, await this.retract(), await this.travel(r), this;
   }
   /**
+   * parse a dimension, e.g. 10mm, 20cm, 5in, mm by default.
+   * @param {String or Number} dim dimension to parse
+   * @returns {Number} dimension in mm
+   * @throws {Error} if the dimension is not in a valid format
+   * @see parseAsTime
+   * @see parseAsNote
+   */
+  parseAsDimension(dim) {
+    let targetDim = 0;
+    if (isFinite(dim))
+      targetDim = typeof dim == "number" ? dim : Number(dim);
+    else {
+      const dimStr = (dim + "").toLowerCase(), params = dimStr.match(DimensionRegex);
+      if (params && params.length == 3) {
+        const numberParam = eval(params[1]);
+        switch (params[2]) {
+          case "cm":
+            targetDim = numberParam / 1e3;
+            break;
+          case "mm":
+            targetDim = numberParam;
+            break;
+          case "in":
+            targetDim = numberParam * 25.4;
+            break;
+          default:
+            throw new Error(
+              `parseAsDimension::Error parsing dimension, bad dimension suffix in ${dimStr}`
+            );
+        }
+      } else
+        throw new Error(
+          `parseAsDimension::Error parsing dimension, check the format of ${dimStr}`
+        );
+    }
+    return targetDim;
+  }
+  /**
+   *  parse as dimension or time
+   * @param {String or Number} arg argument to parse
+   * @returns {Number} dimension in mm (not time! used in extrudes or moves)
+   * @throws {Error} if the argument is not in a valid format
+   * @see parseAsDimension
+   * @see parseAsTime
+   */
+  parseAsDimensionOrTime(t) {
+    try {
+      return this.parseAsDimension(t);
+    } catch {
+      return this.t2mm(this.parseAsTime(t));
+    }
+  }
+  /**
    * Extrude plastic from the printer head to specific coordinates, within printer bounds
    * @param {Object} params Parameters dictionary containing either:
    * - x,y,z,e keys referring to movement and filament position
@@ -1821,11 +1885,11 @@ class LivePrinter {
     if (h < 1e-4 ? n = 1e3 * p.axes.e / y : n = 1e3 * h / y, Number.isNaN(n))
       throw new Error("Movetime NAN in extrudeTo");
     if (e) {
-      const w = this._filamentDiameter / 2;
+      const b = this._filamentDiameter / 2;
       let E = h * this.layerHeight * this.layerHeight;
       if (E > this.maxFilamentPerOperation)
         throw Error("[API] Too much filament in move:" + E);
-      this._extrusionInmm3 || (E /= w * w * Math.PI), p.axes.e = E, P.axes.e = this.e + p.axes.e;
+      this._extrusionInmm3 || (E /= b * b * Math.PI), p.axes.e = E, P.axes.e = this.e + p.axes.e;
     }
     if (P = this.clipToPrinterBounds(P.axes), this.totalMoveTime += n, n > this.maxTimePerOperation)
       throw new Error("[API] move time too long:" + n);
@@ -1906,7 +1970,7 @@ class LivePrinter {
    */
   async extrude(t) {
     let e = {};
-    return e.x = t.x !== void 0 ? parseFloat(t.x) + this.x : this.x, e.y = t.y !== void 0 ? parseFloat(t.y) + this.y : this.y, e.z = t.z !== void 0 ? parseFloat(t.z) + this.z : this.z, e.e = t.e !== void 0 ? parseFloat(t.e) + this.e : void 0, e.retract = t.retract, e.speed = t.speed, this.extrudeto(e);
+    return e.x = t.x !== void 0 ? this.parseAsDimensionOrTime(t.x) + this.x : this.x, e.y = t.y !== void 0 ? this.parseAsDimensionOrTime(t.y) + this.y : this.y, e.z = t.z !== void 0 ? this.parseAsDimensionOrTime(t.z) + this.z : this.z, e.e = t.e !== void 0 ? this.parseAsDimensionOrTime(t.e) + this.e : void 0, e.retract = t.retract, e.speed = t.speed, this.extrudeto(e);
   }
   // end extrude
   /**
@@ -2008,7 +2072,7 @@ class LivePrinter {
         let P = this.midi2speed(t, x);
         s += P * P, x === "x" ? this._heading < Math.PI / 2 && this._heading > -Math.PI / 2 ? l = -90 : l = 90 : x === "y" ? this._heading > 0 && this._heading < Math.PI ? a = 90 : a = -90 : x === "z" && (this._elevation > 0 ? d = Math.PI / 2 : d = -Math.PI / 2);
       }
-    return this._heading = Math.atan2(a, l), this._elevation = d, this._distance = this.printpeed(Math.sqrt(s)) * e / 1e3, this;
+    return this._heading = Math.atan2(a, l), this._elevation = d, this._distance = this.printspeed(Math.sqrt(s)) * e / 1e3, this;
   }
   /**
    * Set the movement distance based on a target amount of time to move. (Uses current print speed to calculate)
@@ -2158,9 +2222,9 @@ class LivePrinter {
         P = Math.min(t[h][g][0], P), y = Math.min(t[h][g][1], y), p = Math.max(t[h][g][0], p), f = Math.max(t[h][g][1], f), t[h][g][0] < u.x && (u.x = t[h][g][0]), t[h][g][1] < u.y && (u.y = t[h][g][0]), t[h][g][0] > u.x2 && (u.x2 = t[h][g][0]), t[h][g][1] > u.y2 && (u.y2 = t[h][g][0]);
       u.area = (1 + u.x2 - u.x) * (1 + u.y2 - u.y), t[h].bounds = u;
     }
-    const n = p - P, c = f - y, v = s && a, w = s || a;
+    const n = p - P, c = f - y, v = s && a, b = s || a;
     if (!v)
-      if (w)
+      if (b)
         if (s > 0) {
           const g = c / n;
           a = s * g;
@@ -2177,12 +2241,12 @@ class LivePrinter {
     for (let g = 0, u = t.length; g < u; g++) {
       let _ = t[g].slice();
       for (let T = 1; T <= d; T++) {
-        const b = T * this.layerHeight + r;
+        const w = T * this.layerHeight + r;
         await this.moveto({
           x: E(_[0][0]),
           y: A(_[0][1])
-        }), await this.moveto({ z: b }), await this.unretract();
-        for (let F = 0, I = _.length; F < I; F++) {
+        }), await this.moveto({ z: w }), await this.unretract();
+        for (let F = 0, z = _.length; F < z; F++) {
           const S = _[F];
           await this.extrudeto({
             x: E(S[0]),
@@ -2233,8 +2297,8 @@ class LivePrinter {
         y = Math.min(t[n][u][0], y), p = Math.min(t[n][u][1], p), f = Math.max(t[n][u][0], f), h = Math.max(t[n][u][1], h), t[n][u][0] < _.x && (_.x = t[n][u][0]), t[n][u][1] < _.y && (_.y = t[n][u][0]), t[n][u][0] > _.x2 && (_.x2 = t[n][u][0]), t[n][u][1] > _.y2 && (_.y2 = t[n][u][0]);
       t[n].bounds = _;
     }
-    const c = f - y, v = h - p, w = s && a, E = s || a;
-    if (!w)
+    const c = f - y, v = h - p, b = s && a, E = s || a;
+    if (!b)
       if (E)
         if (s > 0) {
           const u = v / c;
@@ -2251,22 +2315,22 @@ class LivePrinter {
     });
     for (let u = 1; u <= x; u++)
       for (let _ = 0, T = t.length; _ < T; _++) {
-        let b = t[_].slice();
+        let w = t[_].slice();
         const F = u * this.layerHeight + r;
         if (await this.moveto({
-          x: A(b[0][0]),
-          y: g(b[0][1])
-        }), await this.moveto({ z: F }), b.length > 1) {
-          let I = 0, S = 0, N = A(b[0][0]), D = g(b[0][1]), j = Math.atan2(
-            g(b[1][1]) - D,
-            A(b[1][0]) - N
+          x: A(w[0][0]),
+          y: g(w[0][1])
+        }), await this.moveto({ z: F }), w.length > 1) {
+          let z = 0, S = 0, N = A(w[0][0]), D = g(w[0][1]), j = Math.atan2(
+            g(w[1][1]) - D,
+            A(w[1][0]) - N
           );
-          for (let z = 1, $ = b.length; z < $; z++) {
-            const C = b[z], H = A(C[0]), U = g(C[1]), k = H - N, O = U - D, R = Math.atan2(O, k);
-            R !== j ? (await this.drawfill(I || 2, S || 2, l), I = S = 0, this.turn(R), j = R) : (I += k, S += O);
+          for (let I = 1, C = w.length; I < C; I++) {
+            const k = w[I], H = A(k[0]), U = g(k[1]), O = H - N, $ = U - D, R = Math.atan2($, O);
+            R !== j ? (await this.drawfill(z || 2, S || 2, l), z = S = 0, this.turn(R), j = R) : (z += O, S += $);
           }
         }
-        u < x ? b.reverse() : await this.moveto({ z: P });
+        u < x ? w.reverse() : await this.moveto({ z: P });
       }
     return this;
   }

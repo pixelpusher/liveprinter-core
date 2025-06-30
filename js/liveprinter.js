@@ -42,7 +42,9 @@ const MIN_INTERVAL = 5.357;
 /**
  * For matching time-formatted strings like 1, 1.0, 1.2, 1/4
  */
-const TimeRegex = /(\d+|\d+\.\d+|\d+\/\d+)(s|ms|b)/i;
+const TimeRegex = /^(\d+|\d+\.\d+|\d+\/\d+|\d+\s+\d+\/\d+)(s|ms|b)/i;
+const DimensionRegex = /(\d+|\d+\.\d+|\d+\/\d+)(cm|mm|in)/i;
+
 
 /**
  * Core Printer API of LivePrinter, an interactive programming system for live CNC manufacturing.
@@ -1082,28 +1084,53 @@ export class LivePrinter {
   }
 
   /**
-   * Parse argument as midi note ('a4', 'bb5' etc)
+   * Parse argument as midi note ('a4', 'bb5' etc) or frequency in hz as '11.23hz' or '330hz' etc
    * @param {Any} note note as midi note or just speed as mm/s
    * @returns {Number} speed in mm/s
    */
   parseAsNote(note, bpm = this._bpm) {
-    let targetSpeed;
+    let targetSpeed; // default speed is print speed
 
+    // if a number, assume mm/s
     if (isFinite(note)) {
-      targetSpeed = note; // number is a number, speed or time
-    } else {
-      // parse as string
-      const noteStr = (note + "").toLowerCase();
 
-      // midi note notation?
-      if (/^[a-z]/.test(noteStr)) {
-        targetSpeed = this.midi2speed(noteStr);
-      } else {
+      targetSpeed = typeof note === "number" ? note : Number(note); // number is a number, speed or time
+    
+    } else {
+
+      if (typeof note != "string" && note.length < 1) {
         throw new Error(
-          `parseAsNote::Error parsing note, check the format of ${noteStr}`
+          `parseAsNote::Error parsing note, wrong type of argument or empty string ${note}::${typeof note}`
+        );
+      }
+      
+      // parse as string
+      const noteStr = note.trim().toLowerCase();
+    
+      // if it ends in hz for hertz, convert to speed
+      if (noteStr.endsWith("hz")) {
+        const hz = parseFloat(noteStr.slice(0, -2));
+        if (isNaN(hz)) {
+          throw new Error(
+            `parseAsNote::Error parsing note, check the format of ${noteStr}`
+          );
+        }
+        // default to x, it's the same anyway...
+        targetSpeed = hz / parseFloat(this.speedScale()['x']);
+      } 
+      // midi note notation?
+      else if (/^[a-zA-Z]/.test(noteStr)) 
+      {
+          targetSpeed = this.midi2speed(noteStr);
+      } 
+      else 
+      {
+        throw new Error(
+          `parseAsNote::Error parsing note, check the format of ${note}`
         );
       }
     }
+
     return targetSpeed;
   }
 
@@ -1117,14 +1144,15 @@ export class LivePrinter {
     let targetTime;
 
     if (isFinite(time)) {
-      targetTime = time; // number is a number in ms
+      targetTime = typeof time === "number" ? time : Number(time); // number is a number in ms
     } else {
       // parse as string
       const timeStr = (time + "").toLowerCase();
       const params = timeStr.match(TimeRegex);
 
       if (params && params.length == 3) {
-        const numberParam = eval(params[1]); // easiest way to parse as number
+        // easiest way to parse as number, take into account fractions with spaces. Hacky!
+        const numberParam = params[1].split(' ').reduce((accum,curr)=>accum+eval(curr),0); 
         switch (
           params[2] //time suffix
         ) {
@@ -1775,6 +1803,78 @@ export class LivePrinter {
   }
 
   /**
+   * parse a dimension, e.g. 10mm, 20cm, 5in, mm by default.
+   * @param {String or Number} dim dimension to parse
+   * @returns {Number} dimension in mm
+   * @throws {Error} if the dimension is not in a valid format
+   * @see parseAsTime
+   * @see parseAsNote
+   */
+  parseAsDimension(dim) {
+    let targetDim = 0;
+    if (isFinite(dim)) {
+      targetDim = typeof dim === "number" ? dim : Number(dim); // number is a number in mm
+    } else {
+      // parse as string
+      const dimStr = (dim + "").toLowerCase();
+      const params = dimStr.match(DimensionRegex);
+
+      if (params && params.length == 3) {
+        const numberParam = eval(params[1]); // easiest way to parse as number
+        switch (
+          params[2] //time suffix
+        ) {
+          case "cm": // centimeters
+            {
+              targetDim = numberParam / 1000;
+            }
+            break;
+
+          case "mm": // millimeters
+            {
+              targetDim = numberParam; // silly
+            }
+            break;
+
+          case "in": // inches
+            {
+              //convert inches to mm
+              targetDim = numberParam * 25.4; // 1 inch = 25.4 mm
+            }
+            break;
+
+          default:
+            throw new Error(
+              `parseAsDimension::Error parsing dimension, bad dimension suffix in ${dimStr}`
+            );
+        }
+      } else {
+        throw new Error(
+          `parseAsDimension::Error parsing dimension, check the format of ${dimStr}`
+        );
+      }
+    }
+    return targetDim;
+  }
+
+  /**
+   *  parse as dimension or time
+   * @param {String or Number} arg argument to parse
+   * @returns {Number} dimension in mm (not time! used in extrudes or moves)
+   * @throws {Error} if the argument is not in a valid format
+   * @see parseAsDimension
+   * @see parseAsTime
+   */ 
+  parseAsDimensionOrTime(arg) {
+    try {
+      return this.parseAsDimension(arg);
+    } catch (err) {
+      // if it fails, try to parse as time
+      return this.t2mm(this.parseAsTime(arg));
+    }
+  }
+
+  /**
    * Extrude plastic from the printer head to specific coordinates, within printer bounds
    * @param {Object} params Parameters dictionary containing either:
    * - x,y,z,e keys referring to movement and filament position
@@ -2084,13 +2184,13 @@ export class LivePrinter {
     //otherwise, handle cartesian coordinates mode, relative to current position
     let newparams = {};
     newparams.x =
-      params.x !== undefined ? parseFloat(params.x) + this.x : this.x;
+      params.x !== undefined ? this.parseAsDimensionOrTime(params.x) + this.x : this.x;
     newparams.y =
-      params.y !== undefined ? parseFloat(params.y) + this.y : this.y;
+      params.y !== undefined ? this.parseAsDimensionOrTime(params.y) + this.y : this.y;
     newparams.z =
-      params.z !== undefined ? parseFloat(params.z) + this.z : this.z;
+      params.z !== undefined ? this.parseAsDimensionOrTime(params.z) + this.z : this.z;
     newparams.e =
-      params.e !== undefined ? parseFloat(params.e) + this.e : undefined;
+      params.e !== undefined ? this.parseAsDimensionOrTime(params.e) + this.e : undefined;
 
     // pass through
     newparams.retract = params.retract;
@@ -2258,7 +2358,7 @@ export class LivePrinter {
     // combine all separate distances and speeds into one
     this._heading = Math.atan2(yangle, xangle);
     this._elevation = zangle;
-    this._distance = (this.printpeed(Math.sqrt(totalSpeed)) * time) / 1000; // time in ms
+    this._distance = (this.printspeed(Math.sqrt(totalSpeed)) * time) / 1000; // time in ms
     return this;
   }
 
