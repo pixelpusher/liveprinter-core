@@ -1,0 +1,22 @@
+body, #output {
+    font-family: Arial, sans-serif;
+    background-color: #000;
+    color: #caff2b;
+}
+
+#output {
+    width: 40rem;
+    height: 100%;
+    border: 1px solid whitesmoke;
+    background-color: #000;
+    font-size: 14px;
+    padding: 0.875rem;
+    overflow-y: auto;
+}
+.log {
+    color: #888;
+}
+.info {
+    font-style: italic;
+    color: #0a0;
+}
