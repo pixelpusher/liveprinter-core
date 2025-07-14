@@ -45,7 +45,6 @@ const MIN_INTERVAL = 5.357;
 const TimeRegex = /^(\d+|\d+\.\d+|\d+\/\d+|\d+\s+\d+\/\d+)(s|ms|b)/i;
 const DimensionRegex = /(\d+|\d+\.\d+|\d+\/\d+)(cm|mm|in)/i;
 
-
 /**
  * Core Printer API of LivePrinter, an interactive programming system for live CNC manufacturing.
  * @typicalname lp
@@ -89,7 +88,7 @@ export class LivePrinter {
     this._waitTime = 0;
     this._autoRetract = true; // automatically unretract/retract - see get/set autoretract
     this._bpm = 120; // for beat-based movements
-    this._intervalTime = this.parseAsTime('1/4b'); // for breaking up movements, in ms
+    this._intervalTime = this.parseAsTime("1/4b"); // for breaking up movements, in ms
     this._stopped = false; // for manual stop during mistakes and long moves
     this._bail = false; // whether to bail out of main loop or continue
     this._pauseTime = 0; // time to pause in main loop
@@ -517,10 +516,10 @@ export class LivePrinter {
    */
   bpm(beats = this._bpm) {
     const oldBpm = this._bpm;
-    
+
     this._bpm = beats;
     // recalculate interval time
-    this._intervalTime = this._intervalTime * oldBpm/this._bpm;
+    this._intervalTime = (this._intervalTime * oldBpm) / this._bpm;
     return this._bpm;
   }
 
@@ -842,8 +841,7 @@ export class LivePrinter {
     // multiply by 1000 to get mm/s
     if (t) {
       this.speed((1000 * this._distance) / this.parseAsTime(t));
-    }
-    else if (note) {
+    } else if (note) {
       this.speed(note);
     }
 
@@ -986,11 +984,14 @@ export class LivePrinter {
     // parse time argument to figure out end time
     // based on current time + time offset from argument
 
-    try {
-      targetTime = this.parseAsTime(time);
-    } catch (err) {
-      throw err; // re-throw to scheduler
+    let timeArg = this.parseAsTime(time);
+
+    // if speed is 0, we are in waiting mode
+    if (this._speed === 0) {
+      return this.wait(timeArg);
     }
+
+    targetTime = timeArg + this.totalMoveTime;
 
     await this.printEvent({
       type: "drawtime-start",
@@ -998,8 +999,6 @@ export class LivePrinter {
       start: startTime,
       end: targetTime,
     });
-
-    targetTime += this.totalMoveTime;
 
     // should we clear these? Probably, since they don't apply here
     // not taking into account stored distance, angle, elevation and
@@ -1093,20 +1092,17 @@ export class LivePrinter {
 
     // if a number, assume mm/s
     if (isFinite(note)) {
-
       targetSpeed = typeof note === "number" ? note : Number(note); // number is a number, speed or time
-    
     } else {
-
       if (typeof note != "string" && note.length < 1) {
         throw new Error(
           `parseAsNote::Error parsing note, wrong type of argument or empty string ${note}::${typeof note}`
         );
       }
-      
+
       // parse as string
       const noteStr = note.trim().toLowerCase();
-    
+
       // if it ends in hz for hertz, convert to speed
       if (noteStr.endsWith("hz")) {
         const hz = parseFloat(noteStr.slice(0, -2));
@@ -1116,15 +1112,12 @@ export class LivePrinter {
           );
         }
         // default to x, it's the same anyway...
-        targetSpeed = hz / parseFloat(this.speedScale()['x']);
-      } 
+        targetSpeed = hz / parseFloat(this.speedScale()["x"]);
+      }
       // midi note notation?
-      else if (/^[a-zA-Z]/.test(noteStr)) 
-      {
-          targetSpeed = this.midi2speed(noteStr);
-      } 
-      else 
-      {
+      else if (/^[a-zA-Z]/.test(noteStr)) {
+        targetSpeed = this.midi2speed(noteStr);
+      } else {
         throw new Error(
           `parseAsNote::Error parsing note, check the format of ${note}`
         );
@@ -1133,7 +1126,6 @@ export class LivePrinter {
 
     return targetSpeed;
   }
-
 
   /**
    * Parse argument as time (10b, 1/2b, 20ms, 30s, 1000)
@@ -1152,7 +1144,9 @@ export class LivePrinter {
 
       if (params && params.length == 3) {
         // easiest way to parse as number, take into account fractions with spaces. Hacky!
-        const numberParam = params[1].split(' ').reduce((accum,curr)=>accum+eval(curr),0); 
+        const numberParam = params[1]
+          .split(" ")
+          .reduce((accum, curr) => accum + eval(curr), 0);
         switch (
           params[2] //time suffix
         ) {
@@ -1196,6 +1190,12 @@ export class LivePrinter {
    * @returns {Printer} reference to this object for chaining
    */
   async draw(dist) {
+    if (this._speed === 0) {
+      throw new Error(
+        "[API] draw() called with speed 0, please set speed before calling draw()"
+      );
+    }
+
     const startTime = this.totalMoveTime; // last totalMoveTime, for calc elapsed time in loop
     let totalDistance = 0; // total distance extruded
     this._distance = dist && isFinite(dist) ? dist : this._distance; // stored distance to extrude, unless otherwise specified below
@@ -1634,14 +1634,21 @@ export class LivePrinter {
 
     // parse time argument to figure out end time
     // based on current time + time offset from argument
+    let timeArg = this.parseAsTime(time);
 
-    try {
-      targetTime = this.parseAsTime(time);
-    } catch (err) {
-      throw err; // re-throw to scheduler
+    // if speed is 0, we are in waiting mode
+    if (this._speed === 0) {
+      return this.wait(timeArg);
     }
 
-    targetTime += this.totalMoveTime;
+    targetTime = timeArg + this.totalMoveTime;
+
+    await this.printEvent({
+      type: "traveltime-start",
+      speed: this._travelSpeed,
+      start: startTime,
+      end: targetTime,
+    });
 
     // should we clear these? Probably, since they don't apply here
     // not taking into account stored distance, angle, elevation and
@@ -1653,12 +1660,6 @@ export class LivePrinter {
 
     let safetyCounter = 20000; // arbitrary -- make sure we don't hit infinite loops
 
-    await this.printEvent({
-      type: "traveltime-start",
-      speed: this._travelSpeed,
-      start: startTime,
-      end: targetTime,
-    });
 
     while (safetyCounter && this.totalMoveTime < targetTime) {
       safetyCounter--;
@@ -1864,7 +1865,7 @@ export class LivePrinter {
    * @throws {Error} if the argument is not in a valid format
    * @see parseAsDimension
    * @see parseAsTime
-   */ 
+   */
   parseAsDimensionOrTime(arg) {
     try {
       return this.parseAsDimension(arg);
@@ -1938,7 +1939,6 @@ export class LivePrinter {
         : this._travelSpeed
     );
 
-    
     // update layer height if necessary
     this.layerHeight = parseFloat(
       params.thickness !== undefined ? params.thickness : this.layerHeight
@@ -2184,13 +2184,21 @@ export class LivePrinter {
     //otherwise, handle cartesian coordinates mode, relative to current position
     let newparams = {};
     newparams.x =
-      params.x !== undefined ? this.parseAsDimensionOrTime(params.x) + this.x : this.x;
+      params.x !== undefined
+        ? this.parseAsDimensionOrTime(params.x) + this.x
+        : this.x;
     newparams.y =
-      params.y !== undefined ? this.parseAsDimensionOrTime(params.y) + this.y : this.y;
+      params.y !== undefined
+        ? this.parseAsDimensionOrTime(params.y) + this.y
+        : this.y;
     newparams.z =
-      params.z !== undefined ? this.parseAsDimensionOrTime(params.z) + this.z : this.z;
+      params.z !== undefined
+        ? this.parseAsDimensionOrTime(params.z) + this.z
+        : this.z;
     newparams.e =
-      params.e !== undefined ? this.parseAsDimensionOrTime(params.e) + this.e : undefined;
+      params.e !== undefined
+        ? this.parseAsDimensionOrTime(params.e) + this.e
+        : undefined;
 
     // pass through
     newparams.retract = params.retract;
@@ -2418,9 +2426,6 @@ export class LivePrinter {
     return Math.abs(_dist) * this.parseAsNote(_speed);
   }
 
-  
-
-
   /**
    * Fills an area based on layerHeight (as thickness of each line)
    * @param {float} w width of the area in mm
@@ -2487,7 +2492,18 @@ export class LivePrinter {
    */
   async wait(t = this._waitTime) {
     const tt = this.parseAsTime(t);
+    await this.printEvent({
+      type: "wait-start",
+      speed: 0,
+      time: tt,
+    });
     await this.gcodeEvent("G4 P" + t);
+    this.totalMoveTime += tt; // update total movement time for the printer in ms
+    await this.printEvent({
+      type: "wait-end",
+      speed: 0,
+      time: tt,
+    });
     this._waitTime = 0;
     return this;
   }
