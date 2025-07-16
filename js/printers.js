@@ -77,10 +77,10 @@ export const BED_SIZE = {
  * Note: only UM2 motors are tested, some others are too quiet!
  */
 export const SPEED_SCALE = {
-    "UM3" : { x: 47.069852, y: 47.069852, z: 160.0 },
-    "UM2" : { x: 47.069852, y: 47.069852, z: 160.0 },
-    "UM2plus" : { x: 47.069852, y: 47.069852, z: 160.0 },
-    "REPRAP" : { x: 47.069852, y: 47.069852, z: 160.0 }
+    "UM3" : { x: 47.069852, y: 47.069852, z: 160.0, e: 47.069852 },
+    "UM2" : { x: 47.069852, y: 47.069852, z: 160.0, e: 47.069852 },
+    "UM2plus" : { x: 47.069852, y: 47.069852, z: 160.0, e: 47.069852 },
+    "REPRAP" : { x: 47.069852, y: 47.069852, z: 160.0, e: 47.069852 }
 }
 
 export const FilamentDiameter = { "UM3": 2.85, "UM2": 2.85, "UM2plus": 2.85, "REPRAP": 1.75 };

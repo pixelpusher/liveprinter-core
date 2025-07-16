@@ -643,10 +643,10 @@ const GCODE_HEADER = {
   UM2plus: { x: 223, y: 223, z: 305 },
   REPRAP: { x: 150, y: 150, z: 80 }
 }, SPEED_SCALE = {
-  UM3: { x: 47.069852, y: 47.069852, z: 160 },
-  UM2: { x: 47.069852, y: 47.069852, z: 160 },
-  UM2plus: { x: 47.069852, y: 47.069852, z: 160 },
-  REPRAP: { x: 47.069852, y: 47.069852, z: 160 }
+  UM3: { x: 47.069852, y: 47.069852, z: 160, e: 47.069852 },
+  UM2: { x: 47.069852, y: 47.069852, z: 160, e: 47.069852 },
+  UM2plus: { x: 47.069852, y: 47.069852, z: 160, e: 47.069852 },
+  REPRAP: { x: 47.069852, y: 47.069852, z: 160, e: 47.069852 }
 }, FilamentDiameter = { UM3: 2.85, UM2: 2.85, UM2plus: 2.85, REPRAP: 1.75 }, ExtrusionInmm3 = { UM3: !1, UM2: !1, UM2plus: !0, REPRAP: !1 };
 /**
  * Core Printer API of LivePrinter, an interactive programming system for live CNC manufacturing.
@@ -1338,7 +1338,7 @@ class LivePrinter {
     let i = 0;
     const r = { speed: this._printSpeed };
     let s = this.parseAsTime(t);
-    if (this._speed === 0)
+    if (this._printSpeed === 0)
       return this.wait(s);
     i = s + this.totalMoveTime, await this.printEvent({
       type: "drawtime-start",
@@ -1734,7 +1734,7 @@ class LivePrinter {
     let i = 0;
     const r = { speed: this._travelSpeed };
     let s = this.parseAsTime(t);
-    if (this._speed === 0)
+    if (this._travelSpeed === 0)
       return this.wait(s);
     i = s + this.totalMoveTime, await this.printEvent({
       type: "traveltime-start",

@@ -987,7 +987,7 @@ export class LivePrinter {
     let timeArg = this.parseAsTime(time);
 
     // if speed is 0, we are in waiting mode
-    if (this._speed === 0) {
+    if (this._printSpeed === 0) {
       return this.wait(timeArg);
     }
 
@@ -1637,7 +1637,7 @@ export class LivePrinter {
     let timeArg = this.parseAsTime(time);
 
     // if speed is 0, we are in waiting mode
-    if (this._speed === 0) {
+    if (this._travelSpeed === 0) {
       return this.wait(timeArg);
     }
 
