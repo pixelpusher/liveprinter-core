@@ -2041,9 +2041,11 @@ export class LivePrinter {
     if (moveTime > this.maxTimePerOperation) {
       throw new Error("[API] move time too long:" + moveTime);
     }
-    if (moveTime < 0.001) {
-      this.errorEvent("[API] total move time too short:" + moveTime);
-      throw new Error("[API] move time too short:" + moveTime);
+    if (moveTime < Number.EPSILON) {
+      this.errorEvent("[API] WARNING: total move time too short:" + moveTime);
+      //this broke timelines and livecoding, removed it
+      //throw new Error("[API] move time too short:" + moveTime);
+      return;
     }
     const nozzleSpeed = Vector.div(distanceVec, moveTime / 1000);
 
