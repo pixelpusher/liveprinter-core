@@ -2090,9 +2090,9 @@ class LivePrinter {
    * @param {Number or String} time Time in string or number format to move
    * @returns {Number or String} distance in mm
    */
-  t2mm(t, e = this._printSpeed) {
-    const i = this.parseAsTime(t);
-    return this.parseAsNote(e) * i / 1e3;
+  t2mm(t, e = this._printSpeed, i = this._bpm) {
+    const r = this.parseAsTime(t);
+    return this.parseAsNote(e, i) * r / 1e3;
   }
   /**
    * Calculate the movement distance based on a midi note and the current bpm.

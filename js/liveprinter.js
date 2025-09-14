@@ -2389,9 +2389,9 @@ export class LivePrinter {
    * @param {Number or String} time Time in string or number format to move
    * @returns {Number or String} distance in mm
    */
-  t2mm(time, speed = this._printSpeed) {
+  t2mm(time, speed = this._printSpeed, bpm = this._bpm) {
     const t = this.parseAsTime(time);
-    const s = this.parseAsNote(speed);
+    const s = this.parseAsNote(speed, bpm);
     return (s * t) / 1000; // time in ms
   }
 
