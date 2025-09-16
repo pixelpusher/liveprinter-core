@@ -2424,8 +2424,8 @@ export class LivePrinter {
    * @param {Number} _speed Speed of movement in mm/s
    * @returns {Number} time of movement in ms
    */
-  d2t(_dist = this._distance, _speed = this._printSpeed) {
-    return Math.abs(_dist) * this.parseAsNote(_speed);
+  d2t(_dist = this._distance, _speed = this._printSpeed, bpm) {
+    return Math.abs(_dist) * this.parseAsNote(_speed, bpm);
   }
 
   /**

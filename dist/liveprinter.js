@@ -2120,8 +2120,8 @@ class LivePrinter {
    * @param {Number} _speed Speed of movement in mm/s
    * @returns {Number} time of movement in ms
    */
-  d2t(t = this._distance, e = this._printSpeed) {
-    return Math.abs(t) * this.parseAsNote(e);
+  d2t(t = this._distance, e = this._printSpeed, i) {
+    return Math.abs(t) * this.parseAsNote(e, i);
   }
   /**
    * Fills an area based on layerHeight (as thickness of each line)
