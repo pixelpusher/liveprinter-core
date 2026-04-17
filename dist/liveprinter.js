@@ -1472,7 +1472,7 @@ class LivePrinter {
       length: this._distance
     }); a && i < r; ) {
       if (this._stopped)
-        throw new Exception("draw() manually stopped");
+        throw new Error("draw() manually stopped");
       a--;
       const l = this.totalMoveTime - e, c = performance.now(), p = this.x, P = this.y, g = this.z, x = this._timeWarp({
         dt: this._intervalTime,
@@ -1707,7 +1707,7 @@ class LivePrinter {
       length: this._distance
     }); a && i < r; ) {
       if (this._stopped)
-        throw new Exception("travel() manually stopped");
+        throw new Error("travel() manually stopped");
       a--;
       const l = performance.now(), c = this.totalMoveTime - e, p = this.x, P = this.y, g = this.z, x = this._timeWarp({
         dt: this._intervalTime,

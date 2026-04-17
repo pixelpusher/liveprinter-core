@@ -1232,7 +1232,7 @@ export class LivePrinter {
     
     while (safetyCounter && totalDistance < targetDist) {
       if (this._stopped) {
-        throw new Exception("draw() manually stopped");
+        throw new Error("draw() manually stopped");
       }
       safetyCounter--;
       
@@ -1562,7 +1562,7 @@ export class LivePrinter {
     
     while (safetyCounter && totalDistance < targetDist) {
       if (this._stopped) {
-        throw new Exception("travel() manually stopped");
+        throw new Error("travel() manually stopped");
       }
       safetyCounter--;
       
