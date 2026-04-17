@@ -1023,7 +1023,7 @@ export class LivePrinter {
     
     while (safetyCounter && this.totalMoveTime < targetTime) {
       if (this._stopped) {
-        throw new Exception("drawtime() manually stopped");
+        throw new Error("drawtime() manually stopped");
       }
       safetyCounter--;
       

@@ -1355,7 +1355,7 @@ class LivePrinter {
     let a = 2e4;
     for (; a && this.totalMoveTime < i; ) {
       if (this._stopped)
-        throw new Exception("drawtime() manually stopped");
+        throw new Error("drawtime() manually stopped");
       a--;
       const l = performance.now(), c = this.x, p = this.y, P = this.z, g = this.totalMoveTime - e, x = this._timeWarp({
         dt: this._intervalTime,
