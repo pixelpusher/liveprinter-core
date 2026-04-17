@@ -1126,7 +1126,7 @@ export class LivePrinter {
         targetSpeed = hz / parseFloat(this.speedScale()["x"]);
       }
       // midi note notation?
-      else if (/^[a-zA-Z]\d{1,2}/.test(noteStr)) {
+      else if (/^[a-zA-Z][#b]?\d{1,2}/.test(noteStr)) {
         targetSpeed = this.midi2speed(noteStr);
       }
       // drum pattern notation (hh, bd, cp, oh, sd)

@@ -1403,7 +1403,7 @@ class LivePrinter {
             `parseAsNote::Error parsing note, check the format of ${r}`
           );
         i = s / parseFloat(this.speedScale().x);
-      } else if (/^[a-zA-Z]\d{1,2}/.test(r))
+      } else if (/^[a-zA-Z][#b]?\d{1,2}/.test(r))
         i = this.midi2speed(r);
       else if (/^hh|bd|cp|oh|sd$/.test(r))
         i = this.drum2speed[r];
