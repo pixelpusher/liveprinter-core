@@ -2032,19 +2032,8 @@ export class LivePrinter {
       
       //TODO: fix this
       newPosition = this.clipToPrinterBounds(newPosition.axes);
-      /*
-      this.printEvent({
-      'type': 'info',
-      'newPosition': newPosition.axes,
-      'oldPosition': oldPosition.axes,
-      'speed': this.travelspeed,
-      'moveTime': moveTime,
-      'totalMoveTime': this.totalMoveTime,
-      'layerHeight': this.layerHeight,
-      'length':length,
-      'note': 'Clipped';
-      })
-      */
+      
+      
       this.totalMoveTime += moveTime; // update total movement time for the printer in ms
       
       //this._elevation = Math.asin(velocity.axes.z); // removed because it was non-intuitive!!!
@@ -2929,6 +2918,7 @@ export class LivePrinter {
     * @param {Function} func Async function to run inside loop
     */
     async mainloop(func) {
+      this._bail = false; // otherwise doesn't do much if stopped
       while (!this._bail) {
         if (this._pauseTime > 0) {
           await this.delay(this._pauseTime); // pause some amount
