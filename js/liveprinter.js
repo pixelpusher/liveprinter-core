@@ -2916,6 +2916,7 @@ export class LivePrinter {
     * make sure you can still break the loop later!
     *
     * @param {Function} func Async function to run inside loop
+    * @returns Promise
     */
     async mainloop(func) {
       this._bail = false; // otherwise doesn't do much if stopped
@@ -2927,8 +2928,20 @@ export class LivePrinter {
           await func();
         }
       }
+      return true;
       // do we need to explicitly stop here?
     }
+
+    /**
+     * Alias for mainloop
+     * @param {Function} func 
+     * @returns Promise
+     */
+    async loop(func) {
+      return this.mainloop(func);
+    }
+
+      
     
     /**
     * Quick and dirty (and inexact!) delay function
