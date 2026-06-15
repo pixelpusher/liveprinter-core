@@ -2836,7 +2836,7 @@ var isNamed = deprecate("isNamed", "isNamedPitch", isNamedPitch), GCODE_HEADER =
 		let n = e;
 		return t || (n = this.d2r(e)), this._heading += n, this;
 	}
-	async drawfill({ w: e, h: t, gap: n }) {
+	async drawfill({ w: e = 10, h: t = 10, gap: n } = {}) {
 		n === void 0 && (n = 1.5 * this.layerHeight);
 		let r = this._autoRetract;
 		this._autoRetract = !1;
@@ -2844,7 +2844,7 @@ var isNamed = deprecate("isNamed", "isNamedPitch", isNamedPitch), GCODE_HEADER =
 		if (i < 3) await this.draw(t);
 		else {
 			i % 2 != 0 && (i += 1);
-			for (let e = 0; e < i; e++) {
+			for (let e = 0; !this.bail && e < i; e++) {
 				let r = e % 2 == 0 ? -1 : 1;
 				await this.draw(t), this.turn(r * 90), await this.draw(n), this.turn(r * 90);
 			}
