@@ -2282,7 +2282,7 @@ export class LivePrinter {
       await this.draw(h);
     } else {
       if (times % 2 !== 0) times += 1; // got to be odd so we return to same place smoothly
-      for (let i = 0; !this.bail && i < times; i++) {
+      for (let i = 0; !this._bail && i < times; i++) {
         let m = i % 2 === 0 ? -1 : 1;
         await this.draw(h);
         this.turn(m * 90);

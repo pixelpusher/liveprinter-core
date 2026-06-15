@@ -2844,7 +2844,7 @@ var isNamed = deprecate("isNamed", "isNamedPitch", isNamedPitch), GCODE_HEADER =
 		if (i < 3) await this.draw(t);
 		else {
 			i % 2 != 0 && (i += 1);
-			for (let e = 0; !this.bail && e < i; e++) {
+			for (let e = 0; !this._bail && e < i; e++) {
 				let r = e % 2 == 0 ? -1 : 1;
 				await this.draw(t), this.turn(r * 90), await this.draw(n), this.turn(r * 90);
 			}
