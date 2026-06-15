@@ -160,8 +160,8 @@ var FIFTHS = [
 function coordinates(e) {
 	let { step: t, alt: n, oct: r, dir: i = 1 } = e, a = FIFTHS[t] + 7 * n;
 	if (r === void 0) return [i * a];
-	let s = r - STEPS_TO_OCTS[t] - 4 * n;
-	return [i * a, i * s];
+	let o = r - STEPS_TO_OCTS[t] - 4 * n;
+	return [i * a, i * o];
 }
 var FIFTHS_TO_STEPS = [
 	3,
@@ -228,26 +228,26 @@ function parse$2(e) {
 	if (t[0] === "") return NoInterval;
 	let n = +t[0], r = t[1], i = (Math.abs(n) - 1) % 7, a = TYPES[i];
 	if (a === "M" && r === "P") return NoInterval;
-	let s = a === "M" ? "majorable" : "perfectable", c = "" + n + r, l = n < 0 ? -1 : 1, u = n === 8 || n === -8 ? n : l * (i + 1), d = qToAlt(s, r), f = Math.floor((Math.abs(n) - 1) / 7);
+	let o = a === "M" ? "majorable" : "perfectable", s = "" + n + r, c = n < 0 ? -1 : 1, l = n === 8 || n === -8 ? n : c * (i + 1), u = qToAlt(o, r), d = Math.floor((Math.abs(n) - 1) / 7);
 	return {
 		empty: !1,
-		name: c,
+		name: s,
 		num: n,
 		q: r,
 		step: i,
-		alt: d,
-		dir: l,
-		type: s,
-		simple: u,
-		semitones: l * (SIZES[i] + d + 12 * f),
-		chroma: (l * (SIZES[i] + d) % 12 + 12) % 12,
+		alt: u,
+		dir: c,
+		type: o,
+		simple: l,
+		semitones: c * (SIZES[i] + u + 12 * d),
+		chroma: (c * (SIZES[i] + u) % 12 + 12) % 12,
 		coord: coordinates({
 			step: i,
-			alt: d,
-			oct: f,
-			dir: l
+			alt: u,
+			oct: d,
+			dir: c
 		}),
-		oct: f
+		oct: d
 	};
 }
 function coordToInterval(e, t) {
@@ -268,8 +268,8 @@ function qToAlt(e, t) {
 function pitchName$1(e) {
 	let { step: t, alt: n, oct: r = 0, dir: i } = e;
 	if (!i) return "";
-	let a = t + 1 + 7 * r, s = a === 0 ? t + 1 : a, c = i < 0 ? "-" : "", l = TYPES[t] === "M" ? "majorable" : "perfectable";
-	return c + s + altToQ(l, n);
+	let a = t + 1 + 7 * r, o = a === 0 ? t + 1 : a, s = i < 0 ? "-" : "", c = TYPES[t] === "M" ? "majorable" : "perfectable";
+	return s + o + altToQ(c, n);
 }
 function altToQ(e, t) {
 	return t === 0 ? e === "majorable" ? "M" : "P" : t === -1 && e === "majorable" ? "m" : t > 0 ? fillStr$1("A", t) : fillStr$1("d", e === "perfectable" ? t : t + 1);
@@ -326,24 +326,24 @@ var mod = (e, t) => (e % t + t) % t, SEMI = [
 function parse$1(e) {
 	let t = tokenizeNote(e);
 	if (t[0] === "" || t[3] !== "") return NoNote;
-	let n = t[0], r = t[1], i = t[2], a = (n.charCodeAt(0) + 3) % 7, s = accToAlt(r), c = i.length ? +i : void 0, l = coordinates({
+	let n = t[0], r = t[1], i = t[2], a = (n.charCodeAt(0) + 3) % 7, o = accToAlt(r), s = i.length ? +i : void 0, c = coordinates({
 		step: a,
-		alt: s,
-		oct: c
-	}), u = n + r + i, d = n + r, f = (SEMI[a] + s + 120) % 12, p = c === void 0 ? mod(SEMI[a] + s, 12) - 1188 : SEMI[a] + s + 12 * (c + 1), m = p >= 0 && p <= 127 ? p : null;
+		alt: o,
+		oct: s
+	}), l = n + r + i, u = n + r, d = (SEMI[a] + o + 120) % 12, f = s === void 0 ? mod(SEMI[a] + o, 12) - 1188 : SEMI[a] + o + 12 * (s + 1), p = f >= 0 && f <= 127 ? f : null;
 	return {
 		empty: !1,
 		acc: r,
-		alt: s,
-		chroma: f,
-		coord: l,
-		freq: c === void 0 ? null : 2 ** ((p - 69) / 12) * 440,
-		height: p,
+		alt: o,
+		chroma: d,
+		coord: c,
+		freq: s === void 0 ? null : 2 ** ((f - 69) / 12) * 440,
+		height: f,
 		letter: n,
-		midi: m,
-		name: u,
-		oct: c,
-		pc: d,
+		midi: p,
+		name: l,
+		oct: s,
+		pc: u,
 		step: a
 	};
 }
@@ -372,8 +372,8 @@ function tonicIntervalsTransposer(e, t) {
 function distance$1(e, t) {
 	let n = note(e), r = note(t);
 	if (n.empty || r.empty) return "";
-	let i = n.coord, a = r.coord, s = a[0] - i[0], c = i.length === 2 && a.length === 2 ? a[1] - i[1] : -Math.floor(s * 7 / 12), l = r.height === n.height && r.midi !== null && n.oct === r.oct && n.step > r.step;
-	return coordToInterval([s, c], l).name;
+	let i = n.coord, a = r.coord, o = a[0] - i[0], s = i.length === 2 && a.length === 2 ? a[1] - i[1] : -Math.floor(o * 7 / 12), c = r.height === n.height && r.midi !== null && n.oct === r.oct && n.step > r.step;
+	return coordToInterval([o, s], c).name;
 }
 //#endregion
 //#region node_modules/@tonaljs/collection/dist/index.mjs
@@ -1068,20 +1068,20 @@ function withPerfectFifth(e) {
 	return hasNonPerfectFifth(t) ? e : (t | 16).toString(2);
 }
 function findMatches(e, t, n) {
-	let r = e[0], i = note(r).chroma, a = namedSet(e), s = modes$1(e, !1), c = [];
-	return s.forEach((e, s) => {
-		let l = n.assumePerfectFifth && withPerfectFifth(e);
-		all$2().filter((t) => n.assumePerfectFifth && hasAnyThirdAndPerfectFifthAndAnySeventh(t) ? t.chroma === l : t.chroma === e).forEach((e) => {
-			let n = e.aliases[0], l = a(s);
-			s === i ? c.push({
+	let r = e[0], i = note(r).chroma, a = namedSet(e), o = modes$1(e, !1), s = [];
+	return o.forEach((e, o) => {
+		let c = n.assumePerfectFifth && withPerfectFifth(e);
+		all$2().filter((t) => n.assumePerfectFifth && hasAnyThirdAndPerfectFifthAndAnySeventh(t) ? t.chroma === c : t.chroma === e).forEach((e) => {
+			let n = e.aliases[0], c = a(o);
+			o === i ? s.push({
 				weight: 1 * t,
-				name: `${l}${n}`
-			}) : c.push({
+				name: `${c}${n}`
+			}) : s.push({
 				weight: .5 * t,
-				name: `${l}${n}/${r}`
+				name: `${c}${n}/${r}`
 			});
 		});
-	}), c;
+	}), s;
 }
 //#endregion
 //#region node_modules/@tonaljs/interval/dist/index.mjs
@@ -1355,8 +1355,8 @@ function tokenizeBass(e, t) {
 		n[0],
 		""
 	];
-	let [r, i, a, s] = tokenizeNote(n[1]);
-	return r !== "" && a === "" && s === "" ? [
+	let [r, i, a, o] = tokenizeNote(n[1]);
+	return r !== "" && a === "" && o === "" ? [
 		e,
 		n[0],
 		r + i
@@ -1377,37 +1377,37 @@ function get$3(e) {
 function getChord(e, t, n) {
 	let r = get$5(e), i = note(t || ""), a = note(n || "");
 	if (r.empty || t && i.empty || n && a.empty) return NoChord;
-	let s = distance$1(i.pc, a.pc), c = r.intervals.indexOf(s), l = c >= 0, u = l ? a : note(""), d = c === -1 ? NaN : c + 1, f = a.pc && a.pc !== i.pc, p = Array.from(r.intervals);
-	if (l) for (let e = 1; e < d; e++) {
-		let e = p[0][0], t = p[0][1], n = parseInt(e, 10) + 7;
-		p.push(`${n}${t}`), p.shift();
+	let o = distance$1(i.pc, a.pc), s = r.intervals.indexOf(o), c = s >= 0, l = c ? a : note(""), u = s === -1 ? NaN : s + 1, d = a.pc && a.pc !== i.pc, f = Array.from(r.intervals);
+	if (c) for (let e = 1; e < u; e++) {
+		let e = f[0][0], t = f[0][1], n = parseInt(e, 10) + 7;
+		f.push(`${n}${t}`), f.shift();
 	}
-	else if (f) {
+	else if (d) {
 		let e = subtract(distance$1(i.pc, a.pc), "8P");
-		e && p.unshift(e);
+		e && f.unshift(e);
 	}
-	let m = i.empty ? [] : p.map((e) => transpose$2(i.pc, e));
+	let p = i.empty ? [] : f.map((e) => transpose$2(i.pc, e));
 	e = r.aliases.indexOf(e) === -1 ? r.aliases[0] : e;
-	let h = `${i.empty ? "" : i.pc}${e}${l && d > 1 ? "/" + u.pc : f ? "/" + a.pc : ""}`, g = `${t ? i.pc + " " : ""}${r.name}${l && d > 1 ? " over " + u.pc : f ? " over " + a.pc : ""}`;
+	let m = `${i.empty ? "" : i.pc}${e}${c && u > 1 ? "/" + l.pc : d ? "/" + a.pc : ""}`, h = `${t ? i.pc + " " : ""}${r.name}${c && u > 1 ? " over " + l.pc : d ? " over " + a.pc : ""}`;
 	return {
 		...r,
-		name: g,
-		symbol: h,
+		name: h,
+		symbol: m,
 		tonic: i.pc,
 		type: r.name,
-		root: u.pc,
-		bass: f ? a.pc : "",
-		intervals: p,
-		rootDegree: d,
-		notes: m
+		root: l.pc,
+		bass: d ? a.pc : "",
+		intervals: f,
+		rootDegree: u,
+		notes: p
 	};
 }
 var chord = get$3;
 function transpose$1(e, t) {
 	let [n, r, i] = tokenize$1(e);
 	if (!n) return e;
-	let a = transpose$2(i, t), s = a ? "/" + a : "";
-	return transpose$2(n, t) + r + s;
+	let a = transpose$2(i, t), o = a ? "/" + a : "";
+	return transpose$2(n, t) + r + o;
 }
 function chordScales(e) {
 	let t = isSupersetOf(get$3(e).chroma);
@@ -1633,8 +1633,8 @@ function enharmonic(e, t) {
 	}));
 	if (r.empty || r.chroma !== n.chroma) return "";
 	if (n.oct === void 0) return r.pc;
-	let i = n.chroma - n.alt, a = r.chroma - r.alt, s = i > 11 || a < 0 ? -1 : +(i < 0 || a > 11), c = n.oct + s;
-	return r.pc + c;
+	let i = n.chroma - n.alt, a = r.chroma - r.alt, o = i > 11 || a < 0 ? -1 : +(i < 0 || a > 11), s = n.oct + o;
+	return r.pc + s;
 }
 var index_default$2 = {
 	names,
@@ -1690,20 +1690,20 @@ var ROMANS = "I II III IV V VI VII", NAMES = ROMANS.split(" "), NAMES_MINOR = RO
 function parse(e) {
 	let [t, n, r, i] = tokenize(e);
 	if (!r) return NoRomanNumeral;
-	let a = r.toUpperCase(), s = NAMES.indexOf(a), c = accToAlt(n), l = 1;
+	let a = r.toUpperCase(), o = NAMES.indexOf(a), s = accToAlt(n), c = 1;
 	return {
 		empty: !1,
 		name: t,
 		roman: r,
 		interval: interval({
-			step: s,
-			alt: c,
+			step: o,
+			alt: s,
 			dir: 1
 		}).name,
 		acc: n,
 		chordType: i,
-		alt: c,
-		step: s,
+		alt: s,
+		step: o,
 		major: r === a,
 		oct: 0,
 		dir: 1
@@ -1750,22 +1750,22 @@ var Empty = Object.freeze([]), NoKey = {
 }, mapScaleToType = (e, t, n = "") => t.map((t, r) => `${e[r]}${n}${t}`);
 function keyScale(e, t, n, r, i) {
 	return (a) => {
-		let s = e.map((e) => get$1(e).interval || ""), c = s.map((e) => transpose(a, e)), l = mapScaleToType(c, n), u = c.map((e) => transpose(e, "5P")).map((e) => c.includes(e) && !l.includes(e + "7") ? e + "7" : ""), d = supertonics(u, t), f = u.map((e) => e ? transpose(e.slice(0, -1), "5d") + "7" : ""), p = supertonics(f, t);
+		let o = e.map((e) => get$1(e).interval || ""), s = o.map((e) => transpose(a, e)), c = mapScaleToType(s, n), l = s.map((e) => transpose(e, "5P")).map((e) => s.includes(e) && !c.includes(e + "7") ? e + "7" : ""), u = supertonics(l, t), d = l.map((e) => e ? transpose(e.slice(0, -1), "5d") + "7" : ""), f = supertonics(d, t);
 		return {
 			tonic: a,
 			grades: e,
-			intervals: s,
-			scale: c,
-			triads: mapScaleToType(c, t),
-			chords: l,
+			intervals: o,
+			scale: s,
+			triads: mapScaleToType(s, t),
+			chords: c,
 			chordsHarmonicFunction: r.slice(),
-			chordScales: mapScaleToType(c, i, " "),
-			secondaryDominants: u,
-			secondaryDominantSupertonics: d,
-			substituteDominants: f,
-			substituteDominantSupertonics: p,
-			secondaryDominantsMinorRelative: d,
-			substituteDominantsMinorRelative: p
+			chordScales: mapScaleToType(s, i, " "),
+			secondaryDominants: l,
+			secondaryDominantSupertonics: u,
+			substituteDominants: d,
+			substituteDominantSupertonics: f,
+			secondaryDominantsMinorRelative: u,
+			substituteDominantsMinorRelative: f
 		};
 	};
 }
@@ -1850,19 +1850,19 @@ function get(e) {
 	return typeof e == "string" ? index[e.toLowerCase()] || NoMode : e && e.name ? get(e.name) : NoMode;
 }
 function toMode(e) {
-	let [t, n, r, i, a, s, c] = e, l = c ? [c] : [], u = Number(n).toString(2);
+	let [t, n, r, i, a, o, s] = e, c = s ? [s] : [], l = Number(n).toString(2);
 	return {
 		empty: !1,
 		intervals: get$4(i).intervals,
 		modeNum: t,
-		chroma: u,
-		normalized: u,
+		chroma: l,
+		normalized: l,
 		name: i,
 		setNum: n,
 		alt: r,
 		triad: a,
-		seventh: s,
-		aliases: l
+		seventh: o,
+		aliases: c
 	};
 }
 function chords(e) {
@@ -2394,12 +2394,12 @@ var isNamed = deprecate("isNamed", "isNamedPitch", isNamedPitch), GCODE_HEADER =
 		return e.x = Math.min(e.x, this.maxx), e.y = Math.min(e.y, this.maxy), e.z = Math.min(e.z, this.maxz), e.x = Math.max(e.x, this.minx), e.y = Math.max(e.y, this.miny), e.z = Math.max(e.z, this.minz), e;
 	}
 	to({ x: e, y: t, z: n, t: r, note: i } = {}) {
-		let a = new Vector(e || this.x, t || this.y, n || this.z), s = n ? n - this.z : 0, c = Vector.sub(a, this.position);
-		if (this._distance = c.mag(), this._elevation = Math.atan2(s, Math.hypot(c.axes.x, c.axes.y)), this._distance + this._elevation < 1e-5) {
+		let a = new Vector(e || this.x, t || this.y, n || this.z), o = n ? n - this.z : 0, s = Vector.sub(a, this.position);
+		if (this._distance = s.mag(), this._elevation = Math.atan2(o, Math.hypot(s.axes.x, s.axes.y)), this._distance + this._elevation < 1e-5) {
 			this._elevation = 0, this._distance = 0;
 			return;
 		}
-		return this._heading = Math.atan2(c.axes.y, c.axes.x), Logger.debug(`heading ${this._heading}`), Logger.debug(`heading ${this.angle}`), r ? this.speed(1e3 * this._distance / this.parseAsTime(r)) : i && this.speed(i), this;
+		return this._heading = Math.atan2(s.axes.y, s.axes.x), Logger.debug(`heading ${this._heading}`), Logger.debug(`heading ${this.angle}`), r ? this.speed(1e3 * this._distance / this.parseAsTime(r)) : i && this.speed(i), this;
 	}
 	_defaultWarp({ d: e, heading: t, elevation: n, t: r, tt: i } = {}) {
 		return {
@@ -2448,22 +2448,22 @@ var isNamed = deprecate("isNamed", "isNamedPitch", isNamedPitch), GCODE_HEADER =
 			start: t,
 			end: n
 		}), this._distance = 0;
-		let s = 2e4;
-		for (; s && this.totalMoveTime < n;) {
+		let o = 2e4;
+		for (; o && this.totalMoveTime < n;) {
 			if (this._stopped) throw Error("drawtime() manually stopped");
-			s--;
-			let e = performance.now(), n = this.x, a = this.y, c = this.z, l = this.totalMoveTime - t, u = this._timeWarp({
+			o--;
+			let e = performance.now(), n = this.x, a = this.y, s = this.z, c = this.totalMoveTime - t, l = this._timeWarp({
 				dt: this._intervalTime,
-				t: l,
+				t: c,
 				tt: this.totalMoveTime
-			}), d = this.t2mm(u), f = 0, p = d, { d: m, heading: h, elevation: g } = this._warp({
-				d,
+			}), u = this.t2mm(l), d = 0, f = u, { d: p, heading: m, elevation: h } = this._warp({
+				d: u,
 				heading: this._heading,
 				elevation: this._elevation,
-				t: l,
+				t: c,
 				tt: this.totalMoveTime
 			});
-			p = m, r += m, Math.abs(g) > 2 ** -52 && (p = m * Math.cos(g), f = m * Math.sin(g)), Logger.debug(`Moved ${m} over (${u} ms) to ${r}}`), i.x = n + p * Math.cos(h), i.y = a + p * Math.sin(h), i.z = c + f, await this.extrudeto(i), Logger.debug(`Move time warp op took ${performance.now() - e} ms vs. expected ${this._intervalTime}.`);
+			f = p, r += p, Math.abs(h) > 2 ** -52 && (f = p * Math.cos(h), d = p * Math.sin(h)), Logger.debug(`Moved ${p} over (${l} ms) to ${r}}`), i.x = n + f * Math.cos(m), i.y = a + f * Math.sin(m), i.z = s + d, await this.extrudeto(i), Logger.debug(`Move time warp op took ${performance.now() - e} ms vs. expected ${this._intervalTime}.`);
 		}
 		return await this.printEvent({
 			type: "drawtime-end",
@@ -2523,23 +2523,23 @@ var isNamed = deprecate("isNamed", "isNamedPitch", isNamedPitch), GCODE_HEADER =
 		}); a && n < r;) {
 			if (this._stopped) throw Error("draw() manually stopped");
 			a--;
-			let e = this.totalMoveTime - t, s = performance.now(), c = this.x, l = this.y, u = this.z, d = this._timeWarp({
+			let e = this.totalMoveTime - t, o = performance.now(), s = this.x, c = this.y, l = this.z, u = this._timeWarp({
 				dt: this._intervalTime,
 				t: e,
 				tt: this.totalMoveTime
-			}), f = Math.min(this.t2mm(d), r - n), { d: p, heading: m, elevation: h } = this._warp({
-				d: f,
+			}), d = Math.min(this.t2mm(u), r - n), { d: f, heading: p, elevation: m } = this._warp({
+				d,
 				heading: this._heading,
 				elevation: this._elevation,
 				t: e,
 				tt: this.totalMoveTime
 			});
-			if (f + h < 1e-5) {
-				console.error(`draw() SHORT: ${a}, ${r} ${r - n} / ${f}`);
+			if (d + m < 1e-5) {
+				console.error(`draw() SHORT: ${a}, ${r} ${r - n} / ${d}`);
 				break;
 			}
-			let g = p * Math.sin(h), _ = p * Math.cos(h);
-			i.x = c + _ * Math.cos(m), i.y = l + _ * Math.sin(m), i.z = u + g, await this.extrudeto(i), n += f, Logger.debug(`Moved ${f} to ${n} towards ${r}`), Logger.debug(`Move draw warp op took ${performance.now() - s} ms vs. expected ${this._intervalTime}.`);
+			let h = f * Math.sin(m), g = f * Math.cos(m);
+			i.x = s + g * Math.cos(p), i.y = c + g * Math.sin(p), i.z = l + h, await this.extrudeto(i), n += d, Logger.debug(`Moved ${d} to ${n} towards ${r}`), Logger.debug(`Move draw warp op took ${performance.now() - o} ms vs. expected ${this._intervalTime}.`);
 		}
 		return this._elevation = 0, this._distance = 0, await this.printEvent({
 			type: "draw-end",
@@ -2566,10 +2566,10 @@ var isNamed = deprecate("isNamed", "isNamedPitch", isNamedPitch), GCODE_HEADER =
 		return this._heading = t ? e : this.d2r(e), this;
 	}
 	run(e) {
-		let t = "M", n = "E", r = "L", i = "R", a = "U", s = "D", c = "<", l = ">", u = /([a-zA-Z<>][0-9]+\.?[0-9]*)/gim, d = /([a-zA-Z<>])([0-9]+\.?[0-9]*)/, f = e.match(u);
-		for (let e of f) {
-			let t = e.match(d);
-			if (t.length !== 3) throw Error("[API] Error in command string: " + f);
+		let t = "M", n = "E", r = "L", i = "R", a = "U", o = "D", s = "<", c = ">", l = /([a-zA-Z<>][0-9]+\.?[0-9]*)/gim, u = /([a-zA-Z<>])([0-9]+\.?[0-9]*)/, d = e.match(l);
+		for (let e of d) {
+			let t = e.match(u);
+			if (t.length !== 3) throw Error("[API] Error in command string: " + d);
 			let n = t[1].toUpperCase(), r = parseFloat(t[2]);
 			switch (n) {
 				case "M":
@@ -2658,19 +2658,19 @@ var isNamed = deprecate("isNamed", "isNamedPitch", isNamedPitch), GCODE_HEADER =
 		}); a && n < r;) {
 			if (this._stopped) throw Error("travel() manually stopped");
 			a--;
-			let e = performance.now(), s = this.totalMoveTime - t, c = this.x, l = this.y, u = this.z, d = this._timeWarp({
+			let e = performance.now(), o = this.totalMoveTime - t, s = this.x, c = this.y, l = this.z, u = this._timeWarp({
 				dt: this._intervalTime,
-				t: s,
+				t: o,
 				tt: this.totalMoveTime
-			}), f = Math.min(this.t2mm(d), r - n), p = 0, m = f, { d: h, heading: g, elevation: _ } = this._warp({
-				d: f,
+			}), d = Math.min(this.t2mm(u), r - n), f = 0, p = d, { d: m, heading: h, elevation: g } = this._warp({
+				d,
 				heading: this._heading,
 				elevation: this._elevation,
-				t: s,
+				t: o,
 				tt: this.totalMoveTime
 			});
-			if (f + _ < 1e-5) break;
-			m = h, Math.abs(_) > 2 ** -52 && (m = h * Math.cos(_), p = h * Math.sin(_)), i.x = c + m * Math.cos(g), i.y = l + m * Math.sin(g), i.z = u + p, await this.moveto(i), n += f, Logger.debug(`Moved ${f} to ${n} towards ${r}`), Logger.debug(`Move time warp op (${d}) took ${performance.now() - e} ms vs. expected ${this._intervalTime}.`), await this.printEvent({
+			if (d + g < 1e-5) break;
+			p = m, Math.abs(g) > 2 ** -52 && (p = m * Math.cos(g), f = m * Math.sin(g)), i.x = s + p * Math.cos(h), i.y = c + p * Math.sin(h), i.z = l + f, await this.moveto(i), n += d, Logger.debug(`Moved ${d} to ${n} towards ${r}`), Logger.debug(`Move time warp op (${u}) took ${performance.now() - e} ms vs. expected ${this._intervalTime}.`), await this.printEvent({
 				type: "travel-end",
 				speed: this._travelSpeedSpeed,
 				length: this._distance
@@ -2687,21 +2687,21 @@ var isNamed = deprecate("isNamed", "isNamedPitch", isNamedPitch), GCODE_HEADER =
 			start: t,
 			end: n
 		}), this._distance = 0;
-		let s = 2e4;
-		for (; s && this.totalMoveTime < n;) {
-			s--;
-			let e = performance.now(), n = this.x, a = this.y, c = this.z, l = this.totalMoveTime - t, u = this._timeWarp({
+		let o = 2e4;
+		for (; o && this.totalMoveTime < n;) {
+			o--;
+			let e = performance.now(), n = this.x, a = this.y, s = this.z, c = this.totalMoveTime - t, l = this._timeWarp({
 				dt: this._intervalTime,
-				t: l,
+				t: c,
 				tt: this.totalMoveTime
-			}), d = this.t2mm(u), f = 0, p = d, { d: m, heading: h, elevation: g } = this._warp({
-				d,
+			}), u = this.t2mm(l), d = 0, f = u, { d: p, heading: m, elevation: h } = this._warp({
+				d: u,
 				heading: this._heading,
 				elevation: this._elevation,
-				t: l,
+				t: c,
 				tt: this.totalMoveTime
 			});
-			p = m, r += m, Math.abs(g) > 2 ** -52 && (p = m * Math.cos(g), f = m * Math.sin(g)), Logger.debug(`Moved ${m} over (${u} ms) to ${r}}`), i.x = n + p * Math.cos(h), i.y = a + p * Math.sin(h), i.z = c + f, await this.moveto(i), Logger.debug(`Move time warp op took ${performance.now() - e} ms vs. expected ${this._intervalTime}.`);
+			f = p, r += p, Math.abs(h) > 2 ** -52 && (f = p * Math.cos(h), d = p * Math.sin(h)), Logger.debug(`Moved ${p} over (${l} ms) to ${r}}`), i.x = n + f * Math.cos(m), i.y = a + f * Math.sin(m), i.z = s + d, await this.moveto(i), Logger.debug(`Move time warp op took ${performance.now() - e} ms vs. expected ${this._intervalTime}.`);
 		}
 		return await this.printEvent({
 			type: "traveltime-end",
@@ -2757,60 +2757,60 @@ var isNamed = deprecate("isNamed", "isNamedPitch", isNamedPitch), GCODE_HEADER =
 		}
 	}
 	async extrudeto(e) {
-		let t = e.e === void 0, n = e.x === void 0 ? this.x : parseFloat(e.x), r = e.y === void 0 ? this.y : parseFloat(e.y), i = e.z === void 0 ? this.z : parseFloat(e.z), a = e.e === void 0 ? this.e : parseFloat(e.e), s = Math.abs(a - this.e) > 1e-4, c = t || s, l = t && s && (e.retract === !0 || e.retract === void 0 && this._autoRetract);
-		!t && s && (this.currentRetraction = 0), l && await this.unretract();
-		let u = new Vector({
+		let t = e.e === void 0, n = e.x === void 0 ? this.x : parseFloat(e.x), r = e.y === void 0 ? this.y : parseFloat(e.y), i = e.z === void 0 ? this.z : parseFloat(e.z), a = e.e === void 0 ? this.e : parseFloat(e.e), o = Math.abs(a - this.e) > 1e-4, s = t || o, c = t && o && (e.retract === !0 || e.retract === void 0 && this._autoRetract);
+		!t && o && (this.currentRetraction = 0), c && await this.unretract();
+		let l = new Vector({
 			x: n,
 			y: r,
 			z: i,
 			e: a
-		}), d = this.parseAsNote(e.speed === void 0 ? c ? this._printSpeed : this._travelSpeed : e.speed);
+		}), u = this.parseAsNote(e.speed === void 0 ? s ? this._printSpeed : this._travelSpeed : e.speed);
 		this.layerHeight = parseFloat(e.thickness === void 0 ? this.layerHeight : e.thickness), e.thick !== void 0 && (this.layerHeight = parseFloat(e.thick));
-		let f = Vector.sub(u, this.position), p = new Vector(f.axes.x, f.axes.y, f.axes.z), m, h;
-		if (m = p.mag(), !s && m < 2 ** -52) return;
-		if (h = m < 1e-4 ? 1e3 * f.axes.e / d : 1e3 * m / d, Number.isNaN(h)) throw Error("Movetime NAN in extrudeTo");
+		let d = Vector.sub(l, this.position), f = new Vector(d.axes.x, d.axes.y, d.axes.z), p, m;
+		if (p = f.mag(), !o && p < 2 ** -52) return;
+		if (m = p < 1e-4 ? 1e3 * d.axes.e / u : 1e3 * p / u, Number.isNaN(m)) throw Error("Movetime NAN in extrudeTo");
 		if (t) {
-			Logger.debug(`moveTime: ${h}`);
-			let e = this._filamentDiameter / 2, t = m * this.layerHeight * this.layerHeight;
+			Logger.debug(`moveTime: ${m}`);
+			let e = this._filamentDiameter / 2, t = p * this.layerHeight * this.layerHeight;
 			if (t > this.maxFilamentPerOperation) throw Error("[API] Too much filament in move:" + t);
-			this._extrusionInmm3 || (t /= e * e * Math.PI), f.axes.e = t, u.axes.e = this.e + f.axes.e;
+			this._extrusionInmm3 || (t /= e * e * Math.PI), d.axes.e = t, l.axes.e = this.e + d.axes.e;
 		}
-		if (u = this.clipToPrinterBounds(u.axes), this.totalMoveTime += h, Logger.debug("time: " + h + " / dist:" + m), h > this.maxTimePerOperation) throw Error("[API] move time too long:" + h);
-		if (h < 2 ** -52) {
-			this.errorEvent("[API] WARNING: total move time too short:" + h);
+		if (l = this.clipToPrinterBounds(l.axes), this.totalMoveTime += m, Logger.debug("time: " + m + " / dist:" + p), m > this.maxTimePerOperation) throw Error("[API] move time too long:" + m);
+		if (m < 2 ** -52) {
+			this.errorEvent("[API] WARNING: total move time too short:" + m);
 			return;
 		}
-		let g = Vector.div(f, h / 1e3);
-		if (Logger.debug(g), c) {
-			if (Math.abs(g.axes.x) > this._maxPrintSpeed.x) throw Error("[API] X printing speed too fast:" + g.axes.x);
-			if (Math.abs(g.axes.y) > this._maxPrintSpeed.y) throw Error("[API] Y printing speed too fast:" + g.axes.y);
-			if (Math.abs(g.axes.z) > this._maxPrintSpeed.z) throw Error("[API] Z printing speed too fast:" + g.axes.z);
-			if (Math.abs(g.axes.e) > this._maxPrintSpeed.e) throw Error("[API] E printing speed too fast:" + g.axes.e + "/" + this._maxPrintSpeed.e);
+		let h = Vector.div(d, m / 1e3);
+		if (Logger.debug(h), s) {
+			if (Math.abs(h.axes.x) > this._maxPrintSpeed.x) throw Error("[API] X printing speed too fast:" + h.axes.x);
+			if (Math.abs(h.axes.y) > this._maxPrintSpeed.y) throw Error("[API] Y printing speed too fast:" + h.axes.y);
+			if (Math.abs(h.axes.z) > this._maxPrintSpeed.z) throw Error("[API] Z printing speed too fast:" + h.axes.z);
+			if (Math.abs(h.axes.e) > this._maxPrintSpeed.e) throw Error("[API] E printing speed too fast:" + h.axes.e + "/" + this._maxPrintSpeed.e);
 		} else {
-			if (Math.abs(g.axes.x) > this._maxTravelSpeed.x) throw Error("[API] X travel too fast:" + g.axes.x);
-			if (Math.abs(g.axes.y) > this._maxTravelSpeed.y) throw Error("[API] Y travel too fast:" + g.axes.y);
-			if (Math.abs(g.axes.z) > this._maxTravelSpeed.z) throw Error("[API] Z travel too fast:" + g.axes.z);
+			if (Math.abs(h.axes.x) > this._maxTravelSpeed.x) throw Error("[API] X travel too fast:" + h.axes.x);
+			if (Math.abs(h.axes.y) > this._maxTravelSpeed.y) throw Error("[API] Y travel too fast:" + h.axes.y);
+			if (Math.abs(h.axes.z) > this._maxTravelSpeed.z) throw Error("[API] Z travel too fast:" + h.axes.z);
 		}
-		let _ = { ...this.position.axes };
-		this.position.set(u), await this.sendExtrusionGCode(d), c ? await this.printEvent({
+		let g = { ...this.position.axes };
+		this.position.set(l), await this.sendExtrusionGCode(u), s ? await this.printEvent({
 			type: "extrude",
 			newPosition: { ...this.position.axes },
-			oldPosition: { ..._ },
+			oldPosition: { ...g },
 			speed: this._printSpeed,
-			moveTime: h,
+			moveTime: m,
 			totalMoveTime: this.totalMoveTime,
 			layerHeight: this.layerHeight,
-			length: m
+			length: p
 		}) : await this.printEvent({
 			type: "travel",
 			newPosition: { ...this.position.axes },
-			oldPosition: { ..._ },
+			oldPosition: { ...g },
 			speed: this._travelSpeed,
-			moveTime: h,
+			moveTime: m,
 			totalMoveTime: this.totalMoveTime,
 			layerHeight: this.layerHeight,
-			length: m
-		}), l && await this.retract();
+			length: p
+		}), c && await this.retract();
 	}
 	async sendExtrusionGCode(e) {
 		this.e = parseFloat(this.e.toFixed(4)), this.x = parseFloat(this.x.toFixed(4)), this.y = parseFloat(this.y.toFixed(4)), this.z = parseFloat(this.z.toFixed(4));
@@ -2836,10 +2836,10 @@ var isNamed = deprecate("isNamed", "isNamedPitch", isNamedPitch), GCODE_HEADER =
 		let n = e;
 		return t || (n = this.d2r(e)), this._heading += n, this;
 	}
-	async drawfill(e, t, n) {
+	async drawfill({ w: e, h: t, gap: n }) {
 		n === void 0 && (n = 1.5 * this.layerHeight);
 		let r = this._autoRetract;
-		this._autoRetract = !1, o;
+		this._autoRetract = !1;
 		let i = e / n;
 		if (i < 3) await this.draw(t);
 		else {
@@ -2864,15 +2864,15 @@ var isNamed = deprecate("isNamed", "isNamedPitch", isNamedPitch), GCODE_HEADER =
 	note(e = 40, t = 200, n = "x") {
 		let r = [];
 		r.push(...n);
-		let i = 0, a = 0, s = 0, c = 0;
+		let i = 0, a = 0, o = 0, s = 0;
 		for (let n of r) if (e < 10) {
 			this._waitTime = t;
 			break;
 		} else {
 			let t = this.midi2speed(e, n);
-			i += t * t, n === "x" ? s = this._heading < Math.PI / 2 && this._heading > -Math.PI / 2 ? -90 : 90 : n === "y" ? a = this._heading > 0 && this._heading < Math.PI ? 90 : -90 : n === "z" && (c = this._elevation > 0 ? Math.PI / 2 : -Math.PI / 2);
+			i += t * t, n === "x" ? o = this._heading < Math.PI / 2 && this._heading > -Math.PI / 2 ? -90 : 90 : n === "y" ? a = this._heading > 0 && this._heading < Math.PI ? 90 : -90 : n === "z" && (s = this._elevation > 0 ? Math.PI / 2 : -Math.PI / 2);
 		}
-		return this._heading = Math.atan2(a, s), this._elevation = c, this._distance = this.printspeed(Math.sqrt(i)) * t / 1e3, this;
+		return this._heading = Math.atan2(a, o), this._elevation = s, this._distance = this.printspeed(Math.sqrt(i)) * t / 1e3, this;
 	}
 	t2d(e, t = this._travelSpeed) {
 		let n = this.parseAsTime(e), r = this.parseAsNote(t);
@@ -2937,8 +2937,56 @@ var isNamed = deprecate("isNamed", "isNamedPitch", isNamedPitch), GCODE_HEADER =
 			speed: 250
 		}), this;
 	}
-	async printPaths({ paths: e = [[]], y: t = 0, x: n = 0, z: r = 0, w: i = 0, h: a = 0, useaspect: s = !0, passes: c = 1, safeZ: l = 0 }) {
-		l ||= this.layerHeight * c + 10;
+	async printPaths({ paths: e = [[]], y: t = 0, x: n = 0, z: r = 0, w: i = 0, h: a = 0, useaspect: o = !0, passes: s = 1, safeZ: c = 0 }) {
+		c ||= this.layerHeight * s + 10;
+		let l = Infinity, u = Infinity, d = -Infinity, f = -Infinity, p = e.length;
+		for (; p--;) {
+			let t = e[p].length, n = {
+				x: Infinity,
+				y: Infinity,
+				x2: -Infinity,
+				y2: -Infinity,
+				area: 0
+			};
+			for (; t--;) l = Math.min(e[p][t][0], l), u = Math.min(e[p][t][1], u), d = Math.max(e[p][t][0], d), f = Math.max(e[p][t][1], f), e[p][t][0] < n.x && (n.x = e[p][t][0]), e[p][t][1] < n.y && (n.y = e[p][t][0]), e[p][t][0] > n.x2 && (n.x2 = e[p][t][0]), e[p][t][1] > n.y2 && (n.y2 = e[p][t][0]);
+			n.area = (1 + n.x2 - n.x) * (1 + n.y2 - n.y), e[p].bounds = n;
+		}
+		let m = d - l, h = f - u, g = i && a, _ = i || a;
+		if (!g) if (_) if (i > 0) {
+			let e = h / m;
+			a = i * e;
+		} else {
+			let e = m / h;
+			i = a * e;
+		}
+		else i = m, a = h;
+		let v = makeMapping([l, d], [n, n + i]), y = makeMapping([u, f], [t, t + a]);
+		e.sort(function(e, t) {
+			return e.bounds.x < t.bounds.x ? -1 : 1;
+		});
+		for (let t = 0, n = e.length; t < n; t++) {
+			let n = e[t].slice();
+			for (let e = 1; e <= s; e++) {
+				let t = e * this.layerHeight + r;
+				await this.moveto({
+					x: v(n[0][0]),
+					y: y(n[0][1])
+				}), await this.moveto({ z: t }), await this.unretract();
+				for (let e = 0, t = n.length; e < t; e++) {
+					let t = n[e];
+					await this.extrudeto({
+						x: v(t[0]),
+						y: y(t[1]),
+						retract: !1
+					});
+				}
+				e < s ? n.reverse() : (await this.retract(), await this.moveto({ z: c }));
+			}
+		}
+		return this;
+	}
+	async printPathsThick({ paths: e = [[]], y: t = 0, x: n = 0, z: r = 0, w: i = 0, h: a = 0, t: o = 1, useaspect: s = !0, passes: c = 1, safeZ: l = 0 }) {
+		l ||= this.layerHeight * c + 10, o = this.layerHeight * 2.5 * o;
 		let u = Infinity, d = Infinity, f = -Infinity, p = -Infinity, m = e.length;
 		for (; m--;) {
 			let t = e[m].length, n = {
@@ -2949,7 +2997,7 @@ var isNamed = deprecate("isNamed", "isNamedPitch", isNamedPitch), GCODE_HEADER =
 				area: 0
 			};
 			for (; t--;) u = Math.min(e[m][t][0], u), d = Math.min(e[m][t][1], d), f = Math.max(e[m][t][0], f), p = Math.max(e[m][t][1], p), e[m][t][0] < n.x && (n.x = e[m][t][0]), e[m][t][1] < n.y && (n.y = e[m][t][0]), e[m][t][0] > n.x2 && (n.x2 = e[m][t][0]), e[m][t][1] > n.y2 && (n.y2 = e[m][t][0]);
-			n.area = (1 + n.x2 - n.x) * (1 + n.y2 - n.y), e[m].bounds = n;
+			e[m].bounds = n;
 		}
 		let h = f - u, g = p - d, _ = i && a, v = i || a;
 		if (!_) if (v) if (i > 0) {
@@ -2964,67 +3012,19 @@ var isNamed = deprecate("isNamed", "isNamedPitch", isNamedPitch), GCODE_HEADER =
 		e.sort(function(e, t) {
 			return e.bounds.x < t.bounds.x ? -1 : 1;
 		});
-		for (let t = 0, n = e.length; t < n; t++) {
-			let n = e[t].slice();
-			for (let e = 1; e <= c; e++) {
-				let t = e * this.layerHeight + r;
-				await this.moveto({
-					x: y(n[0][0]),
-					y: b(n[0][1])
-				}), await this.moveto({ z: t }), await this.unretract();
-				for (let e = 0, t = n.length; e < t; e++) {
-					let t = n[e];
-					await this.extrudeto({
-						x: y(t[0]),
-						y: b(t[1]),
-						retract: !1
-					});
-				}
-				e < c ? n.reverse() : (await this.retract(), await this.moveto({ z: l }));
-			}
-		}
-		return this;
-	}
-	async printPathsThick({ paths: e = [[]], y: t = 0, x: n = 0, z: r = 0, w: i = 0, h: a = 0, t: s = 1, useaspect: c = !0, passes: l = 1, safeZ: u = 0 }) {
-		u ||= this.layerHeight * l + 10, s = this.layerHeight * 2.5 * s;
-		let d = Infinity, f = Infinity, p = -Infinity, m = -Infinity, h = e.length;
-		for (; h--;) {
-			let t = e[h].length, n = {
-				x: Infinity,
-				y: Infinity,
-				x2: -Infinity,
-				y2: -Infinity,
-				area: 0
-			};
-			for (; t--;) d = Math.min(e[h][t][0], d), f = Math.min(e[h][t][1], f), p = Math.max(e[h][t][0], p), m = Math.max(e[h][t][1], m), e[h][t][0] < n.x && (n.x = e[h][t][0]), e[h][t][1] < n.y && (n.y = e[h][t][0]), e[h][t][0] > n.x2 && (n.x2 = e[h][t][0]), e[h][t][1] > n.y2 && (n.y2 = e[h][t][0]);
-			e[h].bounds = n;
-		}
-		let g = p - d, _ = m - f, v = i && a, y = i || a;
-		if (!v) if (y) if (i > 0) {
-			let e = _ / g;
-			a = i * e;
-		} else {
-			let e = g / _;
-			i = a * e;
-		}
-		else i = g, a = _;
-		let b = makeMapping([d, p], [n, n + i]), x = makeMapping([f, m], [t, t + a]);
-		e.sort(function(e, t) {
-			return e.bounds.x < t.bounds.x ? -1 : 1;
-		});
-		for (let t = 1; t <= l; t++) for (let n = 0, i = e.length; n < i; n++) {
+		for (let t = 1; t <= c; t++) for (let n = 0, i = e.length; n < i; n++) {
 			let i = e[n].slice(), a = t * this.layerHeight + r;
 			if (await this.moveto({
-				x: b(i[0][0]),
-				y: x(i[0][1])
+				x: y(i[0][0]),
+				y: b(i[0][1])
 			}), await this.moveto({ z: a }), i.length > 1) {
-				let e = 0, t = 0, n = b(i[0][0]), r = x(i[0][1]), a = Math.atan2(x(i[1][1]) - r, b(i[1][0]) - n);
-				for (let c = 1, l = i.length; c < l; c++) {
-					let l = i[c], u = b(l[0]), d = x(l[1]), f = u - n, p = d - r, m = Math.atan2(p, f);
-					m === a ? (e += f, t += p) : (await this.drawfill(e || 2, t || 2, s), e = t = 0, this.turn(m), a = m);
+				let e = 0, t = 0, n = y(i[0][0]), r = b(i[0][1]), a = Math.atan2(b(i[1][1]) - r, y(i[1][0]) - n);
+				for (let s = 1, c = i.length; s < c; s++) {
+					let c = i[s], l = y(c[0]), u = b(c[1]), d = l - n, f = u - r, p = Math.atan2(f, d);
+					p === a ? (e += d, t += f) : (await this.drawfill(e || 2, t || 2, o), e = t = 0, this.turn(p), a = p);
 				}
 			}
-			t < l ? i.reverse() : await this.moveto({ z: u });
+			t < c ? i.reverse() : await this.moveto({ z: l });
 		}
 		return this;
 	}
