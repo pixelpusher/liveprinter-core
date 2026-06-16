@@ -1760,13 +1760,14 @@ export class LivePrinter {
   }
 
   /**
-   * Extrude a polygon starting at the current point on the curve (without retraction)
+   * Extrude a polygon starting at the current point on the curve (without retraction). Radius can be specified as mm, in, etc. or time (beats or ms or seconds).
    * @param {any} r radius
-   * @param {any} segs segments (more means more perfect circle)
+   * @param {any} segs segments (more means more perfect circle, default 10)
    */
-  async polygon(r, segs = 10) {
+  async polygon({r=2, segs = 10}) {
+    const _r = this.parseAsDimensionOrTime(r);
     // law of cosines
-    const r2x2 = r * r * 2;
+    const r2x2 = _r * _r * 2;
     const segAngle = (Math.PI * 2) / segs;
     const arc = Math.sqrt(r2x2 - r2x2 * Math.cos(segAngle));
 
@@ -1774,7 +1775,7 @@ export class LivePrinter {
     this._autoRetract = false; // turn off for this operation
 
     //this.turn(Math.PI / 2, true); // use radians
-    // we're in the middle of segment
+    // we're in the middle of segment>
     //this.turn(-segAngle / 2, true); // use radians
 
     for (let i = 0; i < segs; i++) {
@@ -1788,17 +1789,19 @@ export class LivePrinter {
   }
 
   /**
-   * Extrude a rectangle with the current point as its centre
-   * @param {any} w width
-   * @param {any} h height
+   * Extrude a rectangle from the current point. Dimensions can be specified as mm, in, etc. or time (beats or ms or seconds).
+   * 
+   * @param {any} w width as beat or dimension
+   * @param {any} h height (optional, otherwise draws square)
+   * @param {Boolean} grid True or false if we are drawing a grid so it should move to next position at the end
    * @returns {Printer} reference to this object for chaining
    */
-  async rect({ w, h }) {
+  async rect({ w, h, grid = false }) {
     const prevAutoRetract = this._autoRetract; // save previous state
     this._autoRetract = false; // turn off for this operation
 
-    const side1 = w || h;
-    const side2 = h || w;
+    const side1 = this.parseAsDimensionOrTime(w || h);
+    const side2 = this.parseAsDimensionOrTime(h || w);
 
     // move into place
 
@@ -1812,7 +1815,7 @@ export class LivePrinter {
     this._autoRetract = prevAutoRetract; // turn to prev state
 
     await this.retract();
-    await this.travel(side1); // move into next printing position
+    if (grid) await this.travel(side1); // move into next printing position
 
     return this;
   }
@@ -1839,9 +1842,15 @@ export class LivePrinter {
         switch (
           params[2] //time suffix
         ) {
+          case "m": // centimeters
+            {
+              targetDim = numberParam * 1000;
+            }
+            break;
+
           case "cm": // centimeters
             {
-              targetDim = numberParam / 1000;
+              targetDim = numberParam * 10;
             }
             break;
 
@@ -2264,32 +2273,33 @@ export class LivePrinter {
   }
 
   /**
-   * Fill a rectagular area (lines drawn parallel to direction).
+   * Fill a rectagular area (lines drawn parallel to direction). Dimensions can be specified as mm, in, etc. or time (beats or ms or seconds).
    * @param {Number} w width
    * @param {Number} h height
-   * @param {Number} gap gap between fills
+   * @param {Number} hgap horizontal gap between fills
    */
-  async drawfill({ w = 10, h = 10, gap } = {}) { // add default arguments
+  async drawfill({ w = 10, h = 10, hgap } = {}) { // add default arguments
 
-    if (gap === undefined) gap = 1.5 * this.layerHeight;
+    const _w = this.parseAsDimensionOrTime(w);
+    const _h = this.parseAsDimensionOrTime(h);
+    const _gap = hgap !== undefined ? this.parseAsDimensionOrTime(hgap) : 1.5 * this.layerHeight;
 
     const prevAutoRetract = this._autoRetract; // save previous state
     this._autoRetract = false; // turn off for this operation
 
-    let times = w / gap;
-    if (times < 3) {
+    let times = (_h / _gap) / 2; // two lines with a gap in between each time, so divide by 2
+    if (times < 1) {
       // just room for one
-      await this.draw(h);
+      await this.draw(_h);
     } else {
       if (times % 2 !== 0) times += 1; // got to be odd so we return to same place smoothly
       for (let i = 0; !this._bail && i < times; i++) {
         let m = i % 2 === 0 ? -1 : 1;
-        await this.draw(h);
+        await this.draw(_gap);
         this.turn(m * 90);
-        await this.draw(gap);
+        await this.draw(_w);
         this.turn(m * 90); //turn back
       }
-      this.turn(180);
     }
     this._autoRetract = prevAutoRetract; // turn back to prev state
     if (this._autoRetract) await this.retract();

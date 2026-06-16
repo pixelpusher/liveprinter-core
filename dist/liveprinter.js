@@ -2713,18 +2713,18 @@ var isNamed = deprecate("isNamed", "isNamedPitch", isNamedPitch), GCODE_HEADER =
 	async fwretract(e) {
 		return this.firmwareRetract = e, this.fwretract ? await this.gcodeEvent("M209 S0") : await this.gcodeEvent("M209 S1"), this;
 	}
-	async polygon(e, t = 10) {
-		let n = e * e * 2, r = Math.PI * 2 / t, i = Math.sqrt(n - n * Math.cos(r)), a = this._autoRetract;
+	async polygon({ r: e = 2, segs: t = 10 }) {
+		let n = this.parseAsDimensionOrTime(e), r = n * n * 2, i = Math.PI * 2 / t, a = Math.sqrt(r - r * Math.cos(i)), o = this._autoRetract;
 		this._autoRetract = !1;
-		for (let e = 0; e < t; e++) this.turn(r, !0), await this.draw(i);
-		return this._autoRetract = a, this._autoRetract && await this.retract(), this;
+		for (let e = 0; e < t; e++) this.turn(i, !0), await this.draw(a);
+		return this._autoRetract = o, this._autoRetract && await this.retract(), this;
 	}
-	async rect({ w: e, h: t }) {
-		let n = this._autoRetract;
+	async rect({ w: e, h: t, grid: n = !1 }) {
+		let r = this._autoRetract;
 		this._autoRetract = !1;
-		let r = e || t, i = t || e;
-		for (let e = 0; e < 2; e++) await this.draw(r), this.turn(90), await this.draw(i), this.turn(90);
-		return this._autoRetract = n, await this.retract(), await this.travel(r), this;
+		let i = this.parseAsDimensionOrTime(e || t), a = this.parseAsDimensionOrTime(t || e);
+		for (let e = 0; e < 2; e++) await this.draw(i), this.turn(90), await this.draw(a), this.turn(90);
+		return this._autoRetract = r, await this.retract(), n && await this.travel(i), this;
 	}
 	parseAsDimension(dim) {
 		let targetDim = 0;
@@ -2734,8 +2734,11 @@ var isNamed = deprecate("isNamed", "isNamedPitch", isNamedPitch), GCODE_HEADER =
 			if (params && params.length == 3) {
 				const numberParam = eval(params[1]);
 				switch (params[2]) {
+					case "m":
+						targetDim = numberParam * 1e3;
+						break;
 					case "cm":
-						targetDim = numberParam / 1e3;
+						targetDim = numberParam * 10;
 						break;
 					case "mm":
 						targetDim = numberParam;
@@ -2836,21 +2839,19 @@ var isNamed = deprecate("isNamed", "isNamedPitch", isNamedPitch), GCODE_HEADER =
 		let n = e;
 		return t || (n = this.d2r(e)), this._heading += n, this;
 	}
-	async drawfill({ w: e = 10, h: t = 10, gap: n } = {}) {
-		n === void 0 && (n = 1.5 * this.layerHeight);
-		let r = this._autoRetract;
+	async drawfill({ w: e = 10, h: t = 10, hgap: n } = {}) {
+		let r = this.parseAsDimensionOrTime(e), i = this.parseAsDimensionOrTime(t), a = n === void 0 ? 1.5 * this.layerHeight : this.parseAsDimensionOrTime(n), o = this._autoRetract;
 		this._autoRetract = !1;
-		let i = e / n;
-		if (i < 3) await this.draw(t);
+		let s = i / a / 2;
+		if (s < 1) await this.draw(i);
 		else {
-			i % 2 != 0 && (i += 1);
-			for (let e = 0; !this._bail && e < i; e++) {
-				let r = e % 2 == 0 ? -1 : 1;
-				await this.draw(t), this.turn(r * 90), await this.draw(n), this.turn(r * 90);
+			s % 2 != 0 && (s += 1);
+			for (let e = 0; !this._bail && e < s; e++) {
+				let t = e % 2 == 0 ? -1 : 1;
+				await this.draw(a), this.turn(t * 90), await this.draw(r), this.turn(t * 90);
 			}
-			this.turn(180);
 		}
-		return this._autoRetract = r, this._autoRetract && await this.retract(), this;
+		return this._autoRetract = o, this._autoRetract && await this.retract(), this;
 	}
 	async sync() {
 		return await this.gcodeEvent("M105"), await this.gcodeEvent("M114"), this;
