@@ -2117,13 +2117,37 @@ var isNamed = deprecate("isNamed", "isNamedPitch", isNamedPitch), GCODE_HEADER =
 	REPRAP: !1
 }, MinLayerHeight = .05, MIN_INTERVAL = 5.357, TimeRegex = /^(\d+|\d+\.\d+|\d+\/\d+|\d+\s+\d+\/\d+)(s|ms|b)/i, DimensionRegex = /(\d+|\d+\.\d+|\d+\/\d+)(cm|mm|in)/i, LivePrinter = class {
 	constructor(e = "UM2plus") {
-		this.ext = this.extrude, this.ext2 = this.extrudeto, this.mov = this.move, this.mov2 = this.moveto, this.tur = this.turn, this.tur2 = this.turnto, this.ret = this.retract, this.unret = this.unretract, this.gcodeListeners = [], this.printListeners = [], this.errorListeners = [], this.opListeners = [], this._layerHeight = .2, this.lastSpeed = -1, this._heading = 0, this._elevation = 0, this._distance = 0, this._waitTime = 0, this._autoRetract = !0, this._bpm = 120, this._intervalTime = this.parseAsTime("1/4b"), this._stopped = !1, this._bail = !1, this._pauseTime = 0, this.totalMoveTime = 0, this.maxFilamentPerOperation = 30, this.minFilamentPerOperation = 2e-4, this.maxTimePerOperation = 6e4, this.currentRetraction = 0, this.retractLength = 8.5, this._retractSpeed = 1800, this.firmwareRetract = !1, this.extraUnretract = 0, this.unretractZHop = 0, this.drum2speed = {
+		this.gcodeListeners = [], this.printListeners = [], this.errorListeners = [], this.opListeners = [], this._layerHeight = .2, this.lastSpeed = -1, this._heading = 0, this._elevation = 0, this._distance = 0, this._waitTime = 0, this._autoRetract = !0, this._bpm = 120, this._intervalTime = this.parseAsTime("1/4b"), this._stopped = !1, this._bail = !1, this._pauseTime = 0, this.totalMoveTime = 0, this.maxFilamentPerOperation = 30, this.minFilamentPerOperation = 2e-4, this.maxTimePerOperation = 6e4, this.currentRetraction = 0, this.retractLength = 8.5, this._retractSpeed = 1800, this.firmwareRetract = !1, this.extraUnretract = 0, this.unretractZHop = 0, this.drum2speed = {
 			hh: 200,
 			cp: 150,
 			bd: 4,
 			oh: 175,
 			sd: 80
 		}, this.boundaryMode = "stop", this.maxMovePerCycle = 200, this.setProperties(e);
+	}
+	async ext(...e) {
+		return this.extrude(...e);
+	}
+	async ext2(...e) {
+		return this.extrudeto(...e);
+	}
+	async mov(...e) {
+		return this.move(...e);
+	}
+	async mov2(...e) {
+		return this.moveto(...e);
+	}
+	tur(...e) {
+		return this.turn(...e);
+	}
+	tur2(...e) {
+		return this.turnto(...e);
+	}
+	async ret(...e) {
+		return this.retract(...e);
+	}
+	async unret(...e) {
+		return this.unretract(...e);
 	}
 	setProperties(e) {
 		this._model = e, this._maxTravelSpeed = MAX_SPEED[e].maxTravel, this._maxPrintSpeed = MAX_SPEED[e].maxPrint, this._travelSpeed = this._maxTravelSpeed.x, this._printSpeed = this._maxPrintSpeed.x / 3, this._speedScale = SPEED_SCALE[e], this._bedSize = BED_SIZE[e], this._extrusionInmm3 = ExtrusionInmm3[e], this._filamentDiameter = FilamentDiameter[e], this.minPosition = new Vector({

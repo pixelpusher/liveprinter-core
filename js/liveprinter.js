@@ -60,17 +60,6 @@ export class LivePrinter {
    * @param {String} model Valid model from printers.js
    */
   constructor(model = "UM2plus") {
-    /////---------------------------------------------
-    // Shortcuts --------------------------------------
-    this.ext = this.extrude;
-    this.ext2 = this.extrudeto;
-    this.mov = this.move;
-    this.mov2 = this.moveto;
-    this.tur = this.turn;
-    this.tur2 = this.turnto;
-    this.ret = this.retract;
-    this.unret = this.unretract;
-
     this.gcodeListeners = []; // will be notified of gcode events
     this.printListeners = []; // will be notified of print events
     this.errorListeners = []; // will be notified of error events
@@ -128,6 +117,33 @@ export class LivePrinter {
 
     this.maxMovePerCycle = 200; // max mm to move per calculation (see _extrude method)
     this.setProperties(model);
+  }
+
+  /////---------------------------------------------
+  // Shortcuts --------------------------------------
+  async ext(...args) {
+    return this.extrude(...args);
+  }
+  async ext2(...args) {
+    return this.extrudeto(...args);
+  }
+  async mov(...args) {
+    return this.move(...args);
+  }
+  async mov2(...args) {
+    return this.moveto(...args);
+  }
+  tur(...args) {
+    return this.turn(...args);
+  }
+  tur2(...args) {
+    return this.turnto(...args);
+  }
+  async ret(...args) {
+    return this.retract(...args);
+  }
+  async unret(...args) {
+    return this.unretract(...args);
   }
 
   /**
