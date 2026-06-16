@@ -2842,13 +2842,13 @@ var isNamed = deprecate("isNamed", "isNamedPitch", isNamedPitch), GCODE_HEADER =
 	async drawfill({ w: e = 10, h: t = 10, hgap: n } = {}) {
 		let r = this.parseAsDimensionOrTime(e), i = this.parseAsDimensionOrTime(t), a = n === void 0 ? 1.5 * this.layerHeight : this.parseAsDimensionOrTime(n), o = this._autoRetract;
 		this._autoRetract = !1;
-		let s = i / a / 2;
+		let s = i / a;
 		if (s < 1) await this.draw(i);
 		else {
 			s % 2 != 0 && (s += 1);
 			for (let e = 0; !this._bail && e < s; e++) {
-				let t = e % 2 == 0 ? -1 : 1;
-				await this.draw(a), this.turn(t * 90), await this.draw(r), this.turn(t * 90);
+				let t = e % 2 == 0 ? 1 : -1;
+				await this.draw(a), this.turn(t * 90), await this.draw(r), this.turn(t * -90);
 			}
 		}
 		return this._autoRetract = o, this._autoRetract && await this.retract(), this;

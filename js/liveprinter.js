@@ -2287,18 +2287,18 @@ export class LivePrinter {
     const prevAutoRetract = this._autoRetract; // save previous state
     this._autoRetract = false; // turn off for this operation
 
-    let times = (_h / _gap) / 2; // two lines with a gap in between each time, so divide by 2
+    let times = (_h / _gap); // two lines with a gap in between each time, so divide by 2
     if (times < 1) {
       // just room for one
       await this.draw(_h);
     } else {
       if (times % 2 !== 0) times += 1; // got to be odd so we return to same place smoothly
       for (let i = 0; !this._bail && i < times; i++) {
-        let m = i % 2 === 0 ? -1 : 1;
+        let m = i % 2 === 0 ? 1 : -1;
         await this.draw(_gap);
         this.turn(m * 90);
         await this.draw(_w);
-        this.turn(m * 90); //turn back
+        this.turn(m * -90); //turn back
       }
     }
     this._autoRetract = prevAutoRetract; // turn back to prev state
