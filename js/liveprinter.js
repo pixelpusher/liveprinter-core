@@ -675,7 +675,7 @@ export class LivePrinter {
       await this.gcodeEvent("G10");
     }
 
-    await this.printEvent({
+    this.printEvent({
       type: "retract",
       speed: this.retractSpeed,
       length: this.retractLength,
@@ -735,7 +735,7 @@ export class LivePrinter {
     }
     //this.e = parseFloat(this.e.toFixed(4));
 
-    await this.printEvent({
+    this.printEvent({
       type: "unretract",
       speed: this.retractSpeed,
       length: this.retractLength,
@@ -1020,7 +1020,7 @@ export class LivePrinter {
 
     targetTime = timeArg + this.totalMoveTime;
 
-    await this.printEvent({
+    this.printEvent({
       type: "drawtime-start",
       speed: this._printSpeed,
       start: startTime,
@@ -1099,7 +1099,7 @@ export class LivePrinter {
       );
     }
 
-    await this.printEvent({
+    this.printEvent({
       type: "drawtime-end",
       speed: this._printSpeed,
       start: startTime,
@@ -1150,7 +1150,7 @@ export class LivePrinter {
         targetSpeed = this.drum2speed[noteStr];
       } else {
         throw new Error(
-          `parseAsNote::Error parsing note, check the format of ${note}`,
+          `parseAsNote::Error parsing note, check the format of ${noteStr}`,
         );
       }
     }
@@ -1239,7 +1239,7 @@ export class LivePrinter {
 
     let safetyCounter = 20000; // arbitrary -- make sure we don't hit infinite loops
 
-    await this.printEvent({
+    this.printEvent({
       type: "draw-start",
       speed: this._printSpeed,
       length: this._distance,
@@ -1313,7 +1313,7 @@ export class LivePrinter {
     this._elevation = 0;
     this._distance = 0;
 
-    await this.printEvent({
+    this.printEvent({
       type: "draw-end",
       speed: this._printSpeed,
       length: totalDistance,
@@ -1569,7 +1569,7 @@ export class LivePrinter {
 
     let safetyCounter = 800; // arbitrary -- make sure we don't hit infinite loops
 
-    await this.printEvent({
+    this.printEvent({
       type: "travel-start",
       speed: this._travelSpeed,
       length: this._distance,
@@ -1638,7 +1638,7 @@ export class LivePrinter {
           performance.now() - opStartTime
         } ms vs. expected ${this._intervalTime}.`,
       );
-      await this.printEvent({
+      this.printEvent({
         type: "travel-end",
         speed: this._travelSpeedSpeed,
         length: this._distance,
@@ -1674,7 +1674,7 @@ export class LivePrinter {
 
     targetTime = timeArg + this.totalMoveTime;
 
-    await this.printEvent({
+    this.printEvent({
       type: "traveltime-start",
       speed: this._travelSpeed,
       start: startTime,
@@ -1749,7 +1749,7 @@ export class LivePrinter {
       );
     }
 
-    await this.printEvent({
+    this.printEvent({
       type: "traveltime-end",
       speed: this._travelSpeed,
       start: startTime,
@@ -2117,25 +2117,49 @@ export class LivePrinter {
     const oldPosition = { ...this.position.axes };
     this.position.set(newPosition);
 
-    await this.sendExtrusionGCode(_speed);
-
     if (extruding) {
-      await this.printEvent({
-        type: "extrude",
+      this.printEvent({
+        type: "extrude-start",
         newPosition: { ...this.position.axes },
         oldPosition: { ...oldPosition },
-        speed: this._printSpeed,
+        speed: _speed,
         moveTime: moveTime,
         totalMoveTime: this.totalMoveTime,
         layerHeight: this.layerHeight,
         length: distanceMag,
       });
     } else {
-      await this.printEvent({
-        type: "travel",
+      this.printEvent({
+        type: "travel-start",
         newPosition: { ...this.position.axes },
         oldPosition: { ...oldPosition },
-        speed: this._travelSpeed,
+        speed: _speed,
+        moveTime: moveTime,
+        totalMoveTime: this.totalMoveTime,
+        layerHeight: this.layerHeight,
+        length: distanceMag,
+      });
+    }
+
+    await this.sendExtrusionGCode(_speed);
+
+    if (extruding) {
+      this.printEvent({
+        type: "extrude-end",
+        newPosition: { ...this.position.axes },
+        oldPosition: { ...oldPosition },
+        speed: _speed,
+        moveTime: moveTime,
+        totalMoveTime: this.totalMoveTime,
+        layerHeight: this.layerHeight,
+        length: distanceMag,
+      });
+    } else {
+      this.printEvent({
+        type: "travel-end",
+        newPosition: { ...this.position.axes },
+        oldPosition: { ...oldPosition },
+        speed: _speed,
         moveTime: moveTime,
         totalMoveTime: this.totalMoveTime,
         layerHeight: this.layerHeight,
@@ -2523,14 +2547,14 @@ export class LivePrinter {
    */
   async wait(t = this._waitTime) {
     const tt = this.parseAsTime(t);
-    await this.printEvent({
+    this.printEvent({
       type: "wait-start",
       speed: 0,
       time: tt,
     });
     await this.gcodeEvent("G4 P" + t);
     this.totalMoveTime += tt; // update total movement time for the printer in ms
-    await this.printEvent({
+    this.printEvent({
       type: "wait-end",
       speed: 0,
       time: tt,
