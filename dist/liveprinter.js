@@ -2376,7 +2376,7 @@ var isNamed = deprecate("isNamed", "isNamedPitch", isNamedPitch), GCODE_HEADER =
 			let e = this.e.toFixed(4);
 			await this.gcodeEvent("G1 E" + e + " F" + this._retractSpeed.toFixed(4)), this.e = parseFloat(e);
 		}
-		return this.printEvent({
+		return await this.printEvent({
 			type: "retract",
 			speed: this.retractSpeed,
 			length: this.retractLength
@@ -2393,7 +2393,7 @@ var isNamed = deprecate("isNamed", "isNamedPitch", isNamedPitch), GCODE_HEADER =
 			if (t > this._maxPrintSpeed.e) throw Error("[API] retract speed too high: " + t);
 			r = !0, this._retractSpeed = t * 60;
 		}
-		return this.e += this.retractLength + this.extraUnretract, this.firmwareRetract ? ((r || n) && await this.sendFirmwareRetractSettings(), await this.gcodeEvent("G11")) : (this.e = parseFloat(this.e.toFixed(4)), this.currentRetraction = 0, await this.gcodeEvent("; unretract"), await this.gcodeEvent("G1 E" + this.e + " F" + this._retractSpeed.toFixed(4))), this.printEvent({
+		return this.e += this.retractLength + this.extraUnretract, this.firmwareRetract ? ((r || n) && await this.sendFirmwareRetractSettings(), await this.gcodeEvent("G11")) : (this.e = parseFloat(this.e.toFixed(4)), this.currentRetraction = 0, await this.gcodeEvent("; unretract"), await this.gcodeEvent("G1 E" + this.e + " F" + this._retractSpeed.toFixed(4))), await this.printEvent({
 			type: "unretract",
 			speed: this.retractSpeed,
 			length: this.retractLength
@@ -2466,7 +2466,7 @@ var isNamed = deprecate("isNamed", "isNamedPitch", isNamedPitch), GCODE_HEADER =
 	async drawtime(e) {
 		let t = this.totalMoveTime, n = 0, r = 0, i = { speed: this._printSpeed }, a = this.parseAsTime(e);
 		if (this._printSpeed === 0) return this.wait(a);
-		n = a + this.totalMoveTime, this.printEvent({
+		n = a + this.totalMoveTime, await this.printEvent({
 			type: "drawtime-start",
 			speed: this._printSpeed,
 			start: t,
@@ -2489,7 +2489,7 @@ var isNamed = deprecate("isNamed", "isNamedPitch", isNamedPitch), GCODE_HEADER =
 			});
 			f = p, r += p, Math.abs(h) > 2 ** -52 && (f = p * Math.cos(h), d = p * Math.sin(h)), Logger.debug(`Moved ${p} over (${l} ms) to ${r}}`), i.x = n + f * Math.cos(m), i.y = a + f * Math.sin(m), i.z = s + d, await this.extrudeto(i), Logger.debug(`Move time warp op took ${performance.now() - e} ms vs. expected ${this._intervalTime}.`);
 		}
-		return this.printEvent({
+		return await this.printEvent({
 			type: "drawtime-end",
 			speed: this._printSpeed,
 			start: t,
@@ -2540,7 +2540,7 @@ var isNamed = deprecate("isNamed", "isNamedPitch", isNamedPitch), GCODE_HEADER =
 		let t = this.totalMoveTime, n = 0;
 		this._distance = e && isFinite(e) ? e : this._distance;
 		let r = this._distance, i = { speed: this._printSpeed }, a = 2e4;
-		for (this.printEvent({
+		for (await this.printEvent({
 			type: "draw-start",
 			speed: this._printSpeed,
 			length: this._distance
@@ -2565,7 +2565,7 @@ var isNamed = deprecate("isNamed", "isNamedPitch", isNamedPitch), GCODE_HEADER =
 			let h = f * Math.sin(m), g = f * Math.cos(m);
 			i.x = s + g * Math.cos(p), i.y = c + g * Math.sin(p), i.z = l + h, await this.extrudeto(i), n += d, Logger.debug(`Moved ${d} to ${n} towards ${r}`), Logger.debug(`Move draw warp op took ${performance.now() - o} ms vs. expected ${this._intervalTime}.`);
 		}
-		return this._elevation = 0, this._distance = 0, this.printEvent({
+		return this._elevation = 0, this._distance = 0, await this.printEvent({
 			type: "draw-end",
 			speed: this._printSpeed,
 			length: n
@@ -2675,7 +2675,7 @@ var isNamed = deprecate("isNamed", "isNamedPitch", isNamedPitch), GCODE_HEADER =
 		let t = this.totalMoveTime, n = 0, r = e && isFinite(e) ? e : this._distance, i = { speed: this._travelSpeed };
 		this._distance = 0;
 		let a = 800;
-		for (this.printEvent({
+		for (await this.printEvent({
 			type: "travel-start",
 			speed: this._travelSpeed,
 			length: this._distance
@@ -2694,7 +2694,7 @@ var isNamed = deprecate("isNamed", "isNamedPitch", isNamedPitch), GCODE_HEADER =
 				tt: this.totalMoveTime
 			});
 			if (d + g < 1e-5) break;
-			p = m, Math.abs(g) > 2 ** -52 && (p = m * Math.cos(g), f = m * Math.sin(g)), i.x = s + p * Math.cos(h), i.y = c + p * Math.sin(h), i.z = l + f, await this.moveto(i), n += d, Logger.debug(`Moved ${d} to ${n} towards ${r}`), Logger.debug(`Move time warp op (${u}) took ${performance.now() - e} ms vs. expected ${this._intervalTime}.`), this.printEvent({
+			p = m, Math.abs(g) > 2 ** -52 && (p = m * Math.cos(g), f = m * Math.sin(g)), i.x = s + p * Math.cos(h), i.y = c + p * Math.sin(h), i.z = l + f, await this.moveto(i), n += d, Logger.debug(`Moved ${d} to ${n} towards ${r}`), Logger.debug(`Move time warp op (${u}) took ${performance.now() - e} ms vs. expected ${this._intervalTime}.`), await this.printEvent({
 				type: "travel-end",
 				speed: this._travelSpeedSpeed,
 				length: this._distance
@@ -2705,7 +2705,7 @@ var isNamed = deprecate("isNamed", "isNamedPitch", isNamedPitch), GCODE_HEADER =
 	async traveltime(e) {
 		let t = this.totalMoveTime, n = 0, r = 0, i = { speed: this._travelSpeed }, a = this.parseAsTime(e);
 		if (this._travelSpeed === 0) return this.wait(a);
-		n = a + this.totalMoveTime, this.printEvent({
+		n = a + this.totalMoveTime, await this.printEvent({
 			type: "traveltime-start",
 			speed: this._travelSpeed,
 			start: t,
@@ -2727,7 +2727,7 @@ var isNamed = deprecate("isNamed", "isNamedPitch", isNamedPitch), GCODE_HEADER =
 			});
 			f = p, r += p, Math.abs(h) > 2 ** -52 && (f = p * Math.cos(h), d = p * Math.sin(h)), Logger.debug(`Moved ${p} over (${l} ms) to ${r}}`), i.x = n + f * Math.cos(m), i.y = a + f * Math.sin(m), i.z = s + d, await this.moveto(i), Logger.debug(`Move time warp op took ${performance.now() - e} ms vs. expected ${this._intervalTime}.`);
 		}
-		return this.printEvent({
+		return await this.printEvent({
 			type: "traveltime-end",
 			speed: this._travelSpeed,
 			start: t,
@@ -2819,7 +2819,7 @@ var isNamed = deprecate("isNamed", "isNamedPitch", isNamedPitch), GCODE_HEADER =
 			if (Math.abs(h.axes.z) > this._maxTravelSpeed.z) throw Error("[API] Z travel too fast:" + h.axes.z);
 		}
 		let g = { ...this.position.axes };
-		this.position.set(l), s ? this.printEvent({
+		this.position.set(l), s ? await this.printEvent({
 			type: "extrude-start",
 			newPosition: { ...this.position.axes },
 			oldPosition: { ...g },
@@ -2828,7 +2828,7 @@ var isNamed = deprecate("isNamed", "isNamedPitch", isNamedPitch), GCODE_HEADER =
 			totalMoveTime: this.totalMoveTime,
 			layerHeight: this.layerHeight,
 			length: p
-		}) : this.printEvent({
+		}) : await this.printEvent({
 			type: "travel-start",
 			newPosition: { ...this.position.axes },
 			oldPosition: { ...g },
@@ -2837,7 +2837,7 @@ var isNamed = deprecate("isNamed", "isNamedPitch", isNamedPitch), GCODE_HEADER =
 			totalMoveTime: this.totalMoveTime,
 			layerHeight: this.layerHeight,
 			length: p
-		}), await this.sendExtrusionGCode(u), s ? this.printEvent({
+		}), await this.sendExtrusionGCode(u), s ? await this.printEvent({
 			type: "extrude-end",
 			newPosition: { ...this.position.axes },
 			oldPosition: { ...g },
@@ -2846,7 +2846,7 @@ var isNamed = deprecate("isNamed", "isNamedPitch", isNamedPitch), GCODE_HEADER =
 			totalMoveTime: this.totalMoveTime,
 			layerHeight: this.layerHeight,
 			length: p
-		}) : this.printEvent({
+		}) : await this.printEvent({
 			type: "travel-end",
 			newPosition: { ...this.position.axes },
 			oldPosition: { ...g },
@@ -2958,11 +2958,11 @@ var isNamed = deprecate("isNamed", "isNamedPitch", isNamedPitch), GCODE_HEADER =
 	}
 	async wait(e = this._waitTime) {
 		let t = this.parseAsTime(e);
-		return this.printEvent({
+		return await this.printEvent({
 			type: "wait-start",
 			speed: 0,
 			time: t
-		}), await this.gcodeEvent("G4 P" + e), this.totalMoveTime += t, this.printEvent({
+		}), await this.gcodeEvent("G4 P" + e), this.totalMoveTime += t, await this.printEvent({
 			type: "wait-end",
 			speed: 0,
 			time: t
