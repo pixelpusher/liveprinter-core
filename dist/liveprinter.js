@@ -2543,7 +2543,9 @@ var isNamed = deprecate("isNamed", "isNamedPitch", isNamedPitch), GCODE_HEADER =
 		for (await this.printEvent({
 			type: "draw-start",
 			speed: this._printSpeed,
-			length: this._distance
+			length: this._distance,
+			speed: _speed,
+			moveTime: this.d2t(this._distance)
 		}); a && n < r;) {
 			if (this._stopped) throw Error("draw() manually stopped");
 			a--;
@@ -2678,7 +2680,8 @@ var isNamed = deprecate("isNamed", "isNamedPitch", isNamedPitch), GCODE_HEADER =
 		for (await this.printEvent({
 			type: "travel-start",
 			speed: this._travelSpeed,
-			length: this._distance
+			length: this._distance,
+			moveTime: this.d2t(this._distance)
 		}); a && n < r;) {
 			if (this._stopped) throw Error("travel() manually stopped");
 			a--;
@@ -2829,7 +2832,7 @@ var isNamed = deprecate("isNamed", "isNamedPitch", isNamedPitch), GCODE_HEADER =
 			layerHeight: this.layerHeight,
 			length: p
 		}) : await this.printEvent({
-			type: "travel-start",
+			type: "move-start",
 			newPosition: { ...this.position.axes },
 			oldPosition: { ...g },
 			speed: u,
@@ -2847,7 +2850,7 @@ var isNamed = deprecate("isNamed", "isNamedPitch", isNamedPitch), GCODE_HEADER =
 			layerHeight: this.layerHeight,
 			length: p
 		}) : await this.printEvent({
-			type: "travel-end",
+			type: "move-end",
 			newPosition: { ...this.position.axes },
 			oldPosition: { ...g },
 			speed: u,

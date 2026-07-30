@@ -1243,6 +1243,8 @@ export class LivePrinter {
       type: "draw-start",
       speed: this._printSpeed,
       length: this._distance,
+      speed: _speed,
+      moveTime: this.d2t(this._distance),
     });
 
     while (safetyCounter && totalDistance < targetDist) {
@@ -1573,6 +1575,7 @@ export class LivePrinter {
       type: "travel-start",
       speed: this._travelSpeed,
       length: this._distance,
+      moveTime: this.d2t(this._distance),
     });
 
     while (safetyCounter && totalDistance < targetDist) {
@@ -2130,7 +2133,7 @@ export class LivePrinter {
       });
     } else {
       await this.printEvent({
-        type: "travel-start",
+        type: "move-start", // differentiate from travel
         newPosition: { ...this.position.axes },
         oldPosition: { ...oldPosition },
         speed: _speed,
@@ -2156,7 +2159,7 @@ export class LivePrinter {
       });
     } else {
       await this.printEvent({
-        type: "travel-end",
+        type: "move-end",
         newPosition: { ...this.position.axes },
         oldPosition: { ...oldPosition },
         speed: _speed,
