@@ -14,7 +14,7 @@ describe('LivePrinter Core', () => {
 
     lp.addPrintListener({
       printEvent: (event) => {
-        if (event.type === 'travel' || event.type === 'extrude') {
+        if (event.type === 'move-start' || event.type === 'extrude-start') {
           eventFired = true;
           lastEvent = event;
         }

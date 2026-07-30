@@ -1243,7 +1243,7 @@ export class LivePrinter {
       type: "draw-start",
       speed: this._printSpeed,
       length: this._distance,
-      speed: _speed,
+      speed: this._printSpeed,
       moveTime: this.d2t(this._distance),
     });
 

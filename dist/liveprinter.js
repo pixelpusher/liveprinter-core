@@ -2544,7 +2544,7 @@ var isNamed = deprecate("isNamed", "isNamedPitch", isNamedPitch), GCODE_HEADER =
 			type: "draw-start",
 			speed: this._printSpeed,
 			length: this._distance,
-			speed: _speed,
+			speed: this._printSpeed,
 			moveTime: this.d2t(this._distance)
 		}); a && n < r;) {
 			if (this._stopped) throw Error("draw() manually stopped");
