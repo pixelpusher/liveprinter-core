@@ -1168,7 +1168,12 @@ export class LivePrinter {
 
     if (isFinite(time)) {
       targetTime = typeof time === "number" ? time : Number(time); // number is a number in ms
-    } else {
+    } 
+    else if (typeof time === 'object' || time instanceof Array) {
+      throw Error(`parseAsTime::Error parsing time, check the format of ${ JSON.stringify(time)}`);
+    }
+    else
+    {
       // parse as string
       const timeStr = (time + "").toLowerCase();
       const params = timeStr.match(TimeRegex);
@@ -1515,11 +1520,18 @@ export class LivePrinter {
   /**
    * Shortcut for elevation.
    * @see elevation
-   * @param {any} _elev elevation
-   * @returns {Printer} reference to this object for chaining
+   * @param {Number or Objects} _elev elevation or params
+   * @returns {Number} elevation
    */
-  elev(_elev) {
-    return this.elevation(_elev);
+  elev(args) {
+    if (typeof args !== 'object') {
+      this.elevation(args);
+      return this._elevation;
+    } else {
+      // abbreviated for speed of typing
+      const {t, time, s, speed, bpm = this._bpm, lh = this.layerHeight} = args;
+      return this.calcElevation(time || t, speed || s, bpm, lh);
+    }
   }
 
   /**
@@ -2433,10 +2445,8 @@ export class LivePrinter {
    * @param {Number} time Time to move in milliseconds
    * @returns {Printer} reference to this object for chaining
    */
-  t2d(time, speed = this._travelSpeed) {
-    const t = this.parseAsTime(time);
-    const s = this.parseAsNote(speed);
-    this._distance = this.t2mm(t, s); // time in ms
+  t2d(time, speed = this._printSpeed) {
+    this._distance = this.t2mm(time, speed); // time in ms
     return this;
   }
 
@@ -2452,16 +2462,24 @@ export class LivePrinter {
   }
 
   /**
-   * Calculate the movement distance based on a midi note and the current bpm.
+   * Synonym of sorts for t2d() -- Set the movement distance based on a target amount of time to move. (Uses current print speed to calculate)
+   * @param {Number} time Time to move in milliseconds
+   * @returns {Printer} reference to this object for chaining
+   */
+  n2d(note, time = "1b", bpm = this._bpm) {
+    this.t2d(time, note);
+    return this;
+  }
+
+  /**
+   * Synonym of sorts for t2d() -- Calculate the movement distance based on a midi note and the current bpm.
    * @param {String or Number} note as midi note in string ("C6") or numeric (68) format
    * @param {Number or String} time Time in string or number format to move
    * @param {Number} bpm Beats per minute
    * @returns {Number or String} distance in mm
    */
   n2mm(note, time = "1b", bpm = this._bpm) {
-    const speed = this.midi2speed(note);
-    const _time = this.parseAsTime(time, bpm);
-    return (speed * _time) / 1000; // time in ms
+    return this.t2mm(time, note, bpm);
   }
 
   /**
@@ -2483,6 +2501,21 @@ export class LivePrinter {
   d2t(_dist = this._distance, _speed = this._printSpeed, bpm) {
     return Math.abs(_dist) * this.parseAsNote(_speed, bpm);
   }
+
+  /**
+   * Calculate the elevation based on an input speed (or note), beath length, and layer height (defaults to current)
+   * @param time Total time for this layer in beats etc.
+   * @param speed Input speed or note
+   * @param bpm Beats per minute setting
+   * @param lh Layerheight
+   * @returns angle in degrees to move at to go up the layerheight over the distance set in beats etc.
+   */
+  calcElevation(time, speed, bpm = this._bpm, lh = this.layerHeight) {
+    const d = this.t2mm(time, speed, bpm);
+    return (Math.atan2(lh, d) * 180) / Math.PI;
+  }
+
+
 
   /**
    * Fills an area based on layerHeight (as thickness of each line)

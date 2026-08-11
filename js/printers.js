@@ -38,6 +38,7 @@ export const GCODE_HEADER = {
       "G92 E0",
     ],
     "REPRAP": [";RepRap target", "G28", "G92 E0"],
+    "PRUSAMINI": ["G28 G92 E0"]
 };
   
 
@@ -61,16 +62,21 @@ export const MAX_SPEED = {
   },
 
     "REPRAP": {
-        maxTravel: { x: 250, y: 250, z: 80, e: 45 },
-        maxPrint: { x: 300, y: 300, z: 150, e: 45 },
-    }
+        maxTravel: { x: 250, y: 250, z: 150, e: 45 },
+        maxPrint: { x: 300, y: 300, z: 80, e: 45 },
+    },
+    "PRUSAMINI": {
+        maxTravel: { x: 400, y: 400, z: 150, e: 45 },
+        maxPrint: { x: 300, y: 300, z: 80, e: 45 },
+    }    
 };
   
 export const BED_SIZE = {
     "UM3":  { x: 223, y: 223, z: 305 },
     "UM2":  { x: 223, y: 223, z: 205 },
     "UM2plus":  { x: 223, y: 223, z: 305 },
-    "REPRAP":  { x: 150, y: 150, z: 80 }
+    "REPRAP":  { x: 150, y: 150, z: 80 },
+    "PRUSAMINI": { x:180, y:180, z:180}
 };
 
 /**
@@ -80,8 +86,9 @@ export const SPEED_SCALE = {
     "UM3" : { x: 47.069852, y: 47.069852, z: 160.0, e: 47.069852 },
     "UM2" : { x: 47.069852, y: 47.069852, z: 160.0, e: 47.069852 },
     "UM2plus" : { x: 47.069852, y: 47.069852, z: 160.0, e: 47.069852 },
-    "REPRAP" : { x: 47.069852, y: 47.069852, z: 160.0, e: 47.069852 }
+    "REPRAP" : { x: 47.069852, y: 47.069852, z: 160.0, e: 47.069852 },
+    "PRUSAMINI" : { x: 47.069852, y: 47.069852, z: 160.0, e: 47.069852 }
 }
 
-export const FilamentDiameter = { "UM3": 2.85, "UM2": 2.85, "UM2plus": 2.85, "REPRAP": 1.75 };
-export const ExtrusionInmm3 = { "UM3": false, "UM2": false, "UM2plus": true, "REPRAP": false };  
+export const FilamentDiameter = { "UM3": 2.85, "UM2": 2.85, "UM2plus": 2.85, "REPRAP": 1.75, "PRUSAMINI": 1.75 };
+export const ExtrusionInmm3 = { "UM3": false, "UM2": false, "UM2plus": true, "REPRAP": false, "PRUSAMINI": false };

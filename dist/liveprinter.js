@@ -2001,7 +2001,8 @@ var isNamed = deprecate("isNamed", "isNamedPitch", isNamedPitch), GCODE_HEADER =
 		";RepRap target",
 		"G28",
 		"G92 E0"
-	]
+	],
+	PRUSAMINI: ["G28 G92 E0"]
 }, MAX_SPEED = {
 	UM2plus: {
 		maxPrint: {
@@ -2049,13 +2050,27 @@ var isNamed = deprecate("isNamed", "isNamedPitch", isNamedPitch), GCODE_HEADER =
 		maxTravel: {
 			x: 250,
 			y: 250,
-			z: 80,
+			z: 150,
 			e: 45
 		},
 		maxPrint: {
 			x: 300,
 			y: 300,
+			z: 80,
+			e: 45
+		}
+	},
+	PRUSAMINI: {
+		maxTravel: {
+			x: 400,
+			y: 400,
 			z: 150,
+			e: 45
+		},
+		maxPrint: {
+			x: 300,
+			y: 300,
+			z: 80,
 			e: 45
 		}
 	}
@@ -2079,6 +2094,11 @@ var isNamed = deprecate("isNamed", "isNamedPitch", isNamedPitch), GCODE_HEADER =
 		x: 150,
 		y: 150,
 		z: 80
+	},
+	PRUSAMINI: {
+		x: 180,
+		y: 180,
+		z: 180
 	}
 }, SPEED_SCALE = {
 	UM3: {
@@ -2104,17 +2124,25 @@ var isNamed = deprecate("isNamed", "isNamedPitch", isNamedPitch), GCODE_HEADER =
 		y: 47.069852,
 		z: 160,
 		e: 47.069852
+	},
+	PRUSAMINI: {
+		x: 47.069852,
+		y: 47.069852,
+		z: 160,
+		e: 47.069852
 	}
 }, FilamentDiameter = {
 	UM3: 2.85,
 	UM2: 2.85,
 	UM2plus: 2.85,
-	REPRAP: 1.75
+	REPRAP: 1.75,
+	PRUSAMINI: 1.75
 }, ExtrusionInmm3 = {
 	UM3: !1,
 	UM2: !1,
 	UM2plus: !0,
-	REPRAP: !1
+	REPRAP: !1,
+	PRUSAMINI: !1
 }, MinLayerHeight = .05, MIN_INTERVAL = 5.357, TimeRegex = /^(\d+|\d+\.\d+|\d+\/\d+|\d+\s+\d+\/\d+)(s|ms|b)/i, DimensionRegex = /(\d+|\d+\.\d+|\d+\/\d+)(cm|mm|in)/i, LivePrinter = class {
 	constructor(e = "UM2plus") {
 		this.gcodeListeners = [], this.printListeners = [], this.errorListeners = [], this.opListeners = [], this._layerHeight = .2, this.lastSpeed = -1, this._heading = 0, this._elevation = 0, this._distance = 0, this._waitTime = 0, this._autoRetract = !0, this._bpm = 120, this._intervalTime = this.parseAsTime("1/4b"), this._stopped = !1, this._bail = !1, this._pauseTime = 0, this.totalMoveTime = 0, this.maxFilamentPerOperation = 30, this.minFilamentPerOperation = 2e-4, this.maxTimePerOperation = 6e4, this.currentRetraction = 0, this.retractLength = 8.5, this._retractSpeed = 1800, this.firmwareRetract = !1, this.extraUnretract = 0, this.unretractZHop = 0, this.drum2speed = {
@@ -2515,6 +2543,7 @@ var isNamed = deprecate("isNamed", "isNamedPitch", isNamedPitch), GCODE_HEADER =
 	parseAsTime(time, bpm = this._bpm) {
 		let targetTime;
 		if (isFinite(time)) targetTime = typeof time == "number" ? time : Number(time);
+		else if (typeof time == "object" || time instanceof Array) throw Error(`parseAsTime::Error parsing time, check the format of ${JSON.stringify(time)}`);
 		else {
 			const timeStr = (time + "").toLowerCase(), params = timeStr.match(TimeRegex);
 			if (params && params.length == 3) {
@@ -2662,7 +2691,11 @@ var isNamed = deprecate("isNamed", "isNamedPitch", isNamedPitch), GCODE_HEADER =
 		return t || (e = this.d2r(e)), this._elevation = e, this;
 	}
 	elev(e) {
-		return this.elevation(e);
+		if (typeof e != "object") return this.elevation(e), this._elevation;
+		{
+			let { t, time: n, s: r, speed: i, bpm: a = this._bpm, lh: o = this.layerHeight } = e;
+			return this.calcElevation(n || t, i || r, a, o);
+		}
 	}
 	tilt(e) {
 		return this.elevation(e);
@@ -2920,22 +2953,28 @@ var isNamed = deprecate("isNamed", "isNamedPitch", isNamedPitch), GCODE_HEADER =
 		}
 		return this._heading = Math.atan2(a, o), this._elevation = s, this._distance = this.printspeed(Math.sqrt(i)) * t / 1e3, this;
 	}
-	t2d(e, t = this._travelSpeed) {
-		let n = this.parseAsTime(e), r = this.parseAsNote(t);
-		return this._distance = this.t2mm(n, r), this;
+	t2d(e, t = this._printSpeed) {
+		return this._distance = this.t2mm(e, t), this;
 	}
 	t2mm(e, t = this._printSpeed, n = this._bpm) {
 		let r = this.parseAsTime(e);
 		return this.parseAsNote(t, n) * r / 1e3;
 	}
+	n2d(e, t = "1b", n = this._bpm) {
+		return this.t2d(t, e), this;
+	}
 	n2mm(e, t = "1b", n = this._bpm) {
-		return this.midi2speed(e) * this.parseAsTime(t, n) / 1e3;
+		return this.t2mm(t, e, n);
 	}
 	b2t(e, t = this._bpm) {
 		return this.parseAsTime(e, t);
 	}
 	d2t(e = this._distance, t = this._printSpeed, n) {
 		return Math.abs(e) * this.parseAsNote(t, n);
+	}
+	calcElevation(e, t, n = this._bpm, r = this.layerHeight) {
+		let i = this.t2mm(e, t, n);
+		return Math.atan2(r, i) * 180 / Math.PI;
 	}
 	async fill(e, t, n = this.layerHeight) {
 		let r = n * Math.PI;
