@@ -1525,12 +1525,20 @@ export class LivePrinter {
    */
   elev(args) {
     if (typeof args !== 'object') {
+      console.log('non object args');
       this.elevation(args);
       return this._elevation;
     } else {
       // abbreviated for speed of typing
       const {t, time, s, speed, bpm = this._bpm, lh = this.layerHeight} = args;
-      return this.calcElevation(time || t, speed || s, bpm, lh);
+      console.log(args);
+      const ss = (speed !== undefined ? speed : s) || this._printSpeed;
+      console.log(`${JSON.stringify({time:time !== undefined ? time : t, ss, bpm, lh})}`);
+      const el = this.calcElevation(time !== undefined ? time : t, ss, bpm, lh);
+      console.log(el);
+      this._elevation = el;
+      console.log(this._elevation);
+      return this._elevation;
     }
   }
 
@@ -2510,9 +2518,12 @@ export class LivePrinter {
    * @param lh Layerheight
    * @returns angle in degrees to move at to go up the layerheight over the distance set in beats etc.
    */
-  calcElevation(time, speed, bpm = this._bpm, lh = this.layerHeight) {
+  calcElevation(time, speed, bpm = this._bpm, lh = this.layerHeight, radians = true) {
+    // console.log(time, speed, bpm = this._bpm, lh = this.layerHeight)
     const d = this.t2mm(time, speed, bpm);
-    return (Math.atan2(lh, d) * 180) / Math.PI;
+    const ang =  Math.atan2(lh, d);
+    if (radians) return ang;
+    else return this.r2d(ang);
   }
 
 

@@ -2691,10 +2691,19 @@ var isNamed = deprecate("isNamed", "isNamedPitch", isNamedPitch), GCODE_HEADER =
 		return t || (e = this.d2r(e)), this._elevation = e, this;
 	}
 	elev(e) {
-		if (typeof e != "object") return this.elevation(e), this._elevation;
+		if (typeof e != "object") return console.log("non object args"), this.elevation(e), this._elevation;
 		{
 			let { t, time: n, s: r, speed: i, bpm: a = this._bpm, lh: o = this.layerHeight } = e;
-			return this.calcElevation(n || t, i || r, a, o);
+			console.log(e);
+			let s = (i === void 0 ? r : i) || this._printSpeed;
+			console.log(`${JSON.stringify({
+				time: n === void 0 ? t : n,
+				ss: s,
+				bpm: a,
+				lh: o
+			})}`);
+			let c = this.calcElevation(n === void 0 ? t : n, s, a, o);
+			return console.log(c), this._elevation = c, console.log(this._elevation), this._elevation;
 		}
 	}
 	tilt(e) {
@@ -2972,9 +2981,9 @@ var isNamed = deprecate("isNamed", "isNamedPitch", isNamedPitch), GCODE_HEADER =
 	d2t(e = this._distance, t = this._printSpeed, n) {
 		return Math.abs(e) * this.parseAsNote(t, n);
 	}
-	calcElevation(e, t, n = this._bpm, r = this.layerHeight) {
-		let i = this.t2mm(e, t, n);
-		return Math.atan2(r, i) * 180 / Math.PI;
+	calcElevation(e, t, n = this._bpm, r = this.layerHeight, i = !0) {
+		let a = this.t2mm(e, t, n), o = Math.atan2(r, a);
+		return i ? o : this.r2d(o);
 	}
 	async fill(e, t, n = this.layerHeight) {
 		let r = n * Math.PI;

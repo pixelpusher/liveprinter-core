@@ -185,20 +185,31 @@ describe('drawfill() robust check', () => {
 
       // speed 100mm/s, time 1 beat (0.5s) -> distance = 50mm
       // lh = 0.2, d = 50
-      // angle = atan2(0.2, 50) in degrees
-      const angle = lp.calcElevation("1b",100);
-      const expectedAngle = (Math.atan2(0.2, 50) * 180) / Math.PI;
+      // angle = atan2(0.2, 50) 
+      let angle = lp.calcElevation("1b",100);
+      let expectedAngle = Math.atan2(0.2, 50);
       expect(angle).toBeCloseTo(expectedAngle);
+
+      lp.layerHeight = 0.2;
+      lp.bpm(120); // 1 beat = 500ms
+
+      // speed 100mm/s, time 1 beat (0.5s) -> distance = 50mm
+      // lh = 0.2, d = 50
+      // angle = atan2(0.2, 50) in degrees
+       angle = lp.calcElevation("2b",10);
+       expectedAngle = Math.atan2(0.2, 10);
+      expect(angle).toBeCloseTo(expectedAngle);
+
     });
 
     it("should calculate elevation using elev()", () => {
-      lp.lh = 0.2;
-      lp.bpm(120); // 1 beat = 500ms
+      lp.layerHeight = 0.2;
+      lp.bpm(120); // 1 beat = 500ms, 2b = 1s
       lp.speed(10); //10mm/s
 
       // speed 10mm/s, time 2 beat (1s) -> distance = 10mm
       const angle = lp.elev({time:"2b", speed: 10});
-      const expectedAngle = (Math.atan2(0.2, 10) * 180) / Math.PI;
+      const expectedAngle = Math.atan2(0.2, 10);
       expect(angle).toBeCloseTo(expectedAngle);
     });
 
@@ -206,12 +217,13 @@ describe('drawfill() robust check', () => {
       lp.lh = 0.2; // 0.2mm
       lp.speed(10); //10mm/s
       lp.bpm(120); // 1 beat = 500ms 
+      lp.interval('1/16b');
       const drawTime = '1b';
       const horizontal_d = lp.t2mm(drawTime);
-      const angle = lp.calcElevation(drawTime); // speed 10mm/s
-      lp.elevation(angle);
+      const angle = lp.calcElevation(drawTime); // speed 10mm/s, in degrees not radians
+      lp.elevation(angle, true); // degrees by default
       const startZ = lp.z;
-      await lp.draw(Math.hypot(lp.lh, horizontal_d));
+      await lp.draw(horizontal_d);
       expect(lp.z - startZ).toBeCloseTo(lp.lh);
     });
     
@@ -226,12 +238,12 @@ describe('drawfill() robust check', () => {
       lp.bpm(bpm);
       lp.lh = lh;
 
-      // Calculate the horizontal distance that corresponds to the given time and speed
+      // Calculate the distance that corresponds to the given time and speed
       const horizontal_d = lp.t2mm(time, speed, bpm);
 
       // Calculate the required elevation angle using the object-based `elev` call
       const angle = lp.elev({time, speed, bpm, lh}); 
-      lp.elevation(angle); // Set the calculated angle
+      lp.elevation(angle, true); // Set the calculated angle
 
       const startZ = lp.z;
       const startX = lp.x;
@@ -264,7 +276,7 @@ describe('drawfill() robust check', () => {
 
       // Calculate the required elevation angle using the object-based `elev` call
       const angle = lp.elev({t:time, s:speed, bpm, lh}); 
-      lp.elevation(angle); // Set the calculated angle
+      lp.elevation(angle, true); // Set the calculated angle
 
       const startZ = lp.z;
       const startX = lp.x;
