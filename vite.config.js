@@ -4,7 +4,7 @@ import { defineConfig } from "vite";
 export default defineConfig({
   build: {
     lib: {
-      entry: resolve(__dirname, "lib/main.js"),
+      entry: resolve(import.meta.dirname, "lib/main.js"),
       formats: ['es', 'umd'],
       name: "liveprinter",
       fileName: "liveprinter"

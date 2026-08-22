@@ -2501,21 +2501,21 @@ var isNamed = deprecate("isNamed", "isNamedPitch", isNamedPitch), GCODE_HEADER =
 			end: n
 		}), this._distance = 0;
 		let o = 2e4;
-		for (; o && this.totalMoveTime < n;) {
+		for (; o && n - this.totalMoveTime > 1e-4;) {
 			if (this._stopped) throw Error("drawtime() manually stopped");
 			o--;
-			let e = performance.now(), n = this.x, a = this.y, s = this.z, c = this.totalMoveTime - t, l = this._timeWarp({
+			let e = performance.now(), a = this.x, s = this.y, c = this.z, l = this.totalMoveTime - t, u = n - this.totalMoveTime, d = this._timeWarp({
 				dt: this._intervalTime,
-				t: c,
+				t: l,
 				tt: this.totalMoveTime
-			}), u = this.t2mm(l), d = 0, f = u, { d: p, heading: m, elevation: h } = this._warp({
-				d: u,
+			}), f = Math.min(d, u), p = this.t2mm(d), m = 0, h = p, { d: g, heading: _, elevation: v } = this._warp({
+				d: p,
 				heading: this._heading,
 				elevation: this._elevation,
-				t: c,
+				t: l,
 				tt: this.totalMoveTime
 			});
-			f = p, r += p, Math.abs(h) > 2 ** -52 && (f = p * Math.cos(h), d = p * Math.sin(h)), Logger.debug(`Moved ${p} over (${l} ms) to ${r}}`), i.x = n + f * Math.cos(m), i.y = a + f * Math.sin(m), i.z = s + d, await this.extrudeto(i), Logger.debug(`Move time warp op took ${performance.now() - e} ms vs. expected ${this._intervalTime}.`);
+			h = g, r += g, Math.abs(v) > 2 ** -52 && (h = g * Math.cos(v), m = g * Math.sin(v)), Logger.debug(`Moved ${g} over (${f} ms) to ${r}}`), i.x = a + h * Math.cos(_), i.y = s + h * Math.sin(_), i.z = c + m, await this.extrudeto(i), Logger.debug(`Move time warp op took ${performance.now() - e} ms vs. expected ${this._intervalTime}.`);
 		}
 		return await this.printEvent({
 			type: "drawtime-end",
@@ -2596,7 +2596,7 @@ var isNamed = deprecate("isNamed", "isNamedPitch", isNamedPitch), GCODE_HEADER =
 			let h = f * Math.sin(m), g = f * Math.cos(m);
 			i.x = s + g * Math.cos(p), i.y = c + g * Math.sin(p), i.z = l + h, await this.extrudeto(i), n += d, Logger.debug(`Moved ${d} to ${n} towards ${r}`), Logger.debug(`Move draw warp op took ${performance.now() - o} ms vs. expected ${this._intervalTime}.`);
 		}
-		return this._elevation = 0, this._distance = 0, await this.printEvent({
+		return this._distance = 0, await this.printEvent({
 			type: "draw-end",
 			speed: this._printSpeed,
 			length: n
@@ -2691,19 +2691,10 @@ var isNamed = deprecate("isNamed", "isNamedPitch", isNamedPitch), GCODE_HEADER =
 		return t || (e = this.d2r(e)), this._elevation = e, this;
 	}
 	elev(e) {
-		if (typeof e != "object") return console.log("non object args"), this.elevation(e), this._elevation;
+		if (typeof e != "object") return this.elevation(e), this._elevation;
 		{
-			let { t, time: n, s: r, speed: i, bpm: a = this._bpm, lh: o = this.layerHeight } = e;
-			console.log(e);
-			let s = (i === void 0 ? r : i) || this._printSpeed;
-			console.log(`${JSON.stringify({
-				time: n === void 0 ? t : n,
-				ss: s,
-				bpm: a,
-				lh: o
-			})}`);
-			let c = this.calcElevation(n === void 0 ? t : n, s, a, o);
-			return console.log(c), this._elevation = c, console.log(this._elevation), this._elevation;
+			let { t, time: n, s: r, speed: i, bpm: a = this._bpm, lh: o = this.layerHeight } = e, s = (i === void 0 ? r : i) || this._printSpeed, c = this.calcElevation(n === void 0 ? t : n, s, a, o);
+			return this._elevation = c, this._elevation;
 		}
 	}
 	tilt(e) {
@@ -2745,7 +2736,7 @@ var isNamed = deprecate("isNamed", "isNamedPitch", isNamedPitch), GCODE_HEADER =
 				length: this._distance
 			});
 		}
-		return this._elevation = 0, this;
+		return this._distance = 0, this;
 	}
 	async traveltime(e) {
 		let t = this.totalMoveTime, n = 0, r = 0, i = { speed: this._travelSpeed }, a = this.parseAsTime(e);
@@ -2757,20 +2748,21 @@ var isNamed = deprecate("isNamed", "isNamedPitch", isNamedPitch), GCODE_HEADER =
 			end: n
 		}), this._distance = 0;
 		let o = 2e4;
-		for (; o && this.totalMoveTime < n;) {
+		for (; o && n - this.totalMoveTime > 1e-4;) {
+			if (this._stopped) throw Error("traveltime() manually stopped");
 			o--;
-			let e = performance.now(), n = this.x, a = this.y, s = this.z, c = this.totalMoveTime - t, l = this._timeWarp({
+			let e = performance.now(), a = this.x, s = this.y, c = this.z, l = this.totalMoveTime - t, u = n - this.totalMoveTime, d = this._timeWarp({
 				dt: this._intervalTime,
-				t: c,
+				t: l,
 				tt: this.totalMoveTime
-			}), u = this.t2mm(l), d = 0, f = u, { d: p, heading: m, elevation: h } = this._warp({
-				d: u,
+			}), f = Math.min(d, u), p = this.t2mm(d), m = 0, h = p, { d: g, heading: _, elevation: v } = this._warp({
+				d: p,
 				heading: this._heading,
 				elevation: this._elevation,
-				t: c,
+				t: l,
 				tt: this.totalMoveTime
 			});
-			f = p, r += p, Math.abs(h) > 2 ** -52 && (f = p * Math.cos(h), d = p * Math.sin(h)), Logger.debug(`Moved ${p} over (${l} ms) to ${r}}`), i.x = n + f * Math.cos(m), i.y = a + f * Math.sin(m), i.z = s + d, await this.moveto(i), Logger.debug(`Move time warp op took ${performance.now() - e} ms vs. expected ${this._intervalTime}.`);
+			h = g, r += g, Math.abs(v) > 2 ** -52 && (h = g * Math.cos(v), m = g * Math.sin(v)), Logger.debug(`Moved ${g} over (${f} ms) to ${r}}`), i.x = a + h * Math.cos(_), i.y = s + h * Math.sin(_), i.z = c + m, await this.moveto(i), Logger.debug(`Move time warp op took ${performance.now() - e} ms vs. expected ${this._intervalTime}.`);
 		}
 		return await this.printEvent({
 			type: "traveltime-end",

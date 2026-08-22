@@ -217,7 +217,7 @@ describe('drawfill() robust check', () => {
       lp.lh = 0.2; // 0.2mm
       lp.speed(10); //10mm/s
       lp.bpm(120); // 1 beat = 500ms 
-      lp.interval('1/16b');
+      lp.interval('1/8b');
       const drawTime = '1b';
       const horizontal_d = lp.t2mm(drawTime);
       const angle = lp.calcElevation(drawTime); // speed 10mm/s, in degrees not radians
@@ -228,18 +228,19 @@ describe('drawfill() robust check', () => {
     });
     
     it("should use calculated elevation in a draw operation (object args)", async () => {
-      const lh = 0.4;
+      const lh = 1;
       const bpm = 123;
       const speed = 'a5';
-      const time = '1b';
+      const time = '1/2b';
       
       // Set properties on the printer instance
       lp.speed(speed);
       lp.bpm(bpm);
       lp.lh = lh;
+      lp.interval('1/16b');
 
       // Calculate the distance that corresponds to the given time and speed
-      const horizontal_d = lp.t2mm(time, speed, bpm);
+      const d = lp.t2mm(time, speed, bpm);
 
       // Calculate the required elevation angle using the object-based `elev` call
       const angle = lp.elev({time, speed, bpm, lh}); 
@@ -249,15 +250,13 @@ describe('drawfill() robust check', () => {
       const startX = lp.x;
       const startY = lp.y;
 
-      // The total 3D distance to travel is the hypotenuse.
-      const total_dist_3d = Math.hypot(lh, horizontal_d);
-
+      
       // Use draw() with the total 3D distance to perform the move.
-      await lp.draw(total_dist_3d);
+      await lp.drawtime(time);
 
-      expect(lp.x - startX).toBeCloseTo(horizontal_d);
-      expect(lp.y - startY).toBeCloseTo(0); // No Y movement with default heading
-      expect(lp.z - startZ).toBeCloseTo(lp.lh);
+      expect(lp.x - startX).toBeCloseTo(d * Math.cos(angle));
+      expect(lp.y - startY).toBeCloseTo(0);
+      expect(lp.z - startZ).toBeCloseTo(d * Math.sin(angle));
     });
 
  it("should use calculated elevation in a draw operation (object args shorthand version)", async () => {
@@ -272,7 +271,7 @@ describe('drawfill() robust check', () => {
       lp.lh = lh;
 
       // Calculate the horizontal distance that corresponds to the given time and speed
-      const horizontal_d = lp.t2mm(time, speed, bpm);
+      const d = lp.t2mm(time, speed, bpm);
 
       // Calculate the required elevation angle using the object-based `elev` call
       const angle = lp.elev({t:time, s:speed, bpm, lh}); 
@@ -282,13 +281,10 @@ describe('drawfill() robust check', () => {
       const startX = lp.x;
       const startY = lp.y;
 
-      // The total 3D distance to travel is the hypotenuse.
-      const total_dist_3d = Math.hypot(lh, horizontal_d);
-
       // Use draw() with the total 3D distance to perform the move.
-      await lp.draw(total_dist_3d);
+      await lp.draw(d);
 
-      expect(lp.x - startX).toBeCloseTo(horizontal_d);
+      expect(lp.x - startX).toBeCloseTo(d);
       expect(lp.y - startY).toBeCloseTo(0); // No Y movement with default heading
       expect(lp.z - startZ).toBeCloseTo(lp.lh);
     });
