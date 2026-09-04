@@ -124,7 +124,8 @@ var __defProp = Object.defineProperty, __exportAll = (e, t) => {
 		return e.axes.x * t.axes.x + e.axes.y * t.axes.y + (e.axes.z || 0) * (t.axes.z || 0);
 	}
 	static cross(t, n) {
-		return new e(t.axes.y * (n.axes.z || 0) - (t.axes.z || 0) * n.axes.y, (t.axes.z || 0) * n.axes.x - t.axes.x * (n.axes.z || 0), t.axes.x * n.axes.y - t.axes.y * n.axes.x);
+		let r = t.axes.y * (n.axes.z || 0) - (t.axes.z || 0) * n.axes.y, i = (t.axes.z || 0) * n.axes.x - t.axes.x * (n.axes.z || 0), a = t.axes.x * n.axes.y - t.axes.y * n.axes.x;
+		return new e(r, i, a);
 	}
 	static angleBetween(t, n) {
 		let r = e.dot(t, n) / (t.mag() * n.mag()), i;
@@ -2305,7 +2306,7 @@ var isNamed = deprecate("isNamed", "isNamedPitch", isNamedPitch), GCODE_HEADER =
 		return this.maxPosition.axes;
 	}
 	autoretract(e = !0) {
-		return e ? this._autoRetract = e : this._autoRetract = !1, this._autoRetract;
+		return this._autoRetract = e || !1, this._autoRetract;
 	}
 	get cx() {
 		return this.minx + (this.maxx - this.minx) / 2;
@@ -2369,7 +2370,7 @@ var isNamed = deprecate("isNamed", "isNamedPitch", isNamedPitch), GCODE_HEADER =
 		return this._bpm = e * 60, this._bpm;
 	}
 	interval(e) {
-		if (this._intervalTime = this.parseAsTime(e), this._intervalTime < MIN_INTERVAL) throw this._intervalTime = MIN_INTERVAL, Error(`Error setting interval() time, too short: ${targetTime} < ${MIN_INTERVAL}`);
+		if (this._intervalTime = this.parseAsTime(e), this._intervalTime < MIN_INTERVAL) throw this._intervalTime = MIN_INTERVAL, Error(`Error setting interval() time, too short: ${this._intervalTime} < ${MIN_INTERVAL}`);
 		return this;
 	}
 	async retractspeed(e) {
@@ -2508,7 +2509,7 @@ var isNamed = deprecate("isNamed", "isNamedPitch", isNamedPitch), GCODE_HEADER =
 				dt: this._intervalTime,
 				t: l,
 				tt: this.totalMoveTime
-			}), f = Math.min(d, u), p = this.t2mm(d), m = 0, h = p, { d: g, heading: _, elevation: v } = this._warp({
+			}), f = Math.min(d, u), p = this.t2mm(f), m = 0, h = p, { d: g, heading: _, elevation: v } = this._warp({
 				d: p,
 				heading: this._heading,
 				elevation: this._elevation,
@@ -2550,7 +2551,7 @@ var isNamed = deprecate("isNamed", "isNamedPitch", isNamedPitch), GCODE_HEADER =
 				const numberParam = params[1].split(" ").reduce((accum, curr) => accum + eval(curr), 0);
 				switch (params[2]) {
 					case "s":
-						targetTime = numberParam / 1e3;
+						targetTime = numberParam * 1e3;
 						break;
 					case "ms":
 						targetTime = numberParam;
@@ -2722,7 +2723,7 @@ var isNamed = deprecate("isNamed", "isNamedPitch", isNamedPitch), GCODE_HEADER =
 				dt: this._intervalTime,
 				t: o,
 				tt: this.totalMoveTime
-			}), d = Math.min(this.t2mm(u), r - n), f = 0, p = d, { d: m, heading: h, elevation: g } = this._warp({
+			}), d = Math.min(this.t2mm(u, this._travelSpeed), r - n), f = 0, p = d, { d: m, heading: h, elevation: g } = this._warp({
 				d,
 				heading: this._heading,
 				elevation: this._elevation,
@@ -2755,7 +2756,7 @@ var isNamed = deprecate("isNamed", "isNamedPitch", isNamedPitch), GCODE_HEADER =
 				dt: this._intervalTime,
 				t: l,
 				tt: this.totalMoveTime
-			}), f = Math.min(d, u), p = this.t2mm(d), m = 0, h = p, { d: g, heading: _, elevation: v } = this._warp({
+			}), f = Math.min(d, u), p = this.t2mm(f, this._travelSpeed), m = 0, h = p, { d: g, heading: _, elevation: v } = this._warp({
 				d: p,
 				heading: this._heading,
 				elevation: this._elevation,
@@ -2895,9 +2896,8 @@ var isNamed = deprecate("isNamed", "isNamedPitch", isNamedPitch), GCODE_HEADER =
 		}), c && await this.retract();
 	}
 	async sendExtrusionGCode(e) {
-		this.e = parseFloat(this.e.toFixed(4)), this.x = parseFloat(this.x.toFixed(4)), this.y = parseFloat(this.y.toFixed(4)), this.z = parseFloat(this.z.toFixed(4));
 		let t = ["G1"];
-		return t.push("X" + this.x), t.push("Y" + this.y), t.push("Z" + this.z), t.push("E" + this.e), t.push("F" + (e * 60).toFixed(4)), await this.gcodeEvent(t.join(" ")), this;
+		return t.push("X" + parseFloat(this.x.toFixed(4))), t.push("Y" + parseFloat(this.y.toFixed(4))), t.push("Z" + parseFloat(this.z.toFixed(4))), t.push("E" + parseFloat(this.e.toFixed(4))), t.push("F" + (e * 60).toFixed(4)), await this.gcodeEvent(t.join(" ")), this;
 	}
 	async sendArcExtrusionGCode(e, t = !0, n = !0) {
 		let r = clockwise ? ["G2"] : ["G3"];
@@ -3038,14 +3038,17 @@ var isNamed = deprecate("isNamed", "isNamedPitch", isNamedPitch), GCODE_HEADER =
 			n.area = (1 + n.x2 - n.x) * (1 + n.y2 - n.y), e[p].bounds = n;
 		}
 		let m = d - l, h = f - u, g = i && a, _ = i || a;
-		if (!g) if (_) if (i > 0) {
-			let e = h / m;
-			a = i * e;
-		} else {
-			let e = m / h;
-			i = a * e;
+		if (!g) {
+			if (_) {
+				if (i > 0) {
+					let e = h / m;
+					a = i * e;
+				} else {
+					let e = m / h;
+					i = a * e;
+				}
+			} else i = m, a = h;
 		}
-		else i = m, a = h;
 		let v = makeMapping([l, d], [n, n + i]), y = makeMapping([u, f], [t, t + a]);
 		e.sort(function(e, t) {
 			return e.bounds.x < t.bounds.x ? -1 : 1;
@@ -3086,14 +3089,17 @@ var isNamed = deprecate("isNamed", "isNamedPitch", isNamedPitch), GCODE_HEADER =
 			e[m].bounds = n;
 		}
 		let h = f - u, g = p - d, _ = i && a, v = i || a;
-		if (!_) if (v) if (i > 0) {
-			let e = g / h;
-			a = i * e;
-		} else {
-			let e = h / g;
-			i = a * e;
+		if (!_) {
+			if (v) {
+				if (i > 0) {
+					let e = g / h;
+					a = i * e;
+				} else {
+					let e = h / g;
+					i = a * e;
+				}
+			} else i = h, a = g;
 		}
-		else i = h, a = g;
 		let y = makeMapping([u, f], [n, n + i]), b = makeMapping([d, p], [t, t + a]);
 		e.sort(function(e, t) {
 			return e.bounds.x < t.bounds.x ? -1 : 1;

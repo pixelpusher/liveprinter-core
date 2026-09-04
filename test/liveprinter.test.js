@@ -290,5 +290,146 @@ describe('drawfill() robust check', () => {
     });
 
   });
-  
+
+  describe("parseAsTime", () => {
+    it("should correctly parse seconds to milliseconds", () => {
+      expect(lp.parseAsTime("1s")).toBeCloseTo(1000);
+      expect(lp.parseAsTime("0.5s")).toBeCloseTo(500);
+      expect(lp.parseAsTime("2s")).toBeCloseTo(2000);
+      expect(lp.parseAsTime("0.1s")).toBeCloseTo(100);
+    });
+
+    it("should correctly parse beats to milliseconds", () => {
+      lp.bpm(120); // 1 beat = 500ms
+      expect(lp.parseAsTime("1b")).toBeCloseTo(500);
+      expect(lp.parseAsTime("1/2b")).toBeCloseTo(250);
+      expect(lp.parseAsTime("2b")).toBeCloseTo(1000);
+    });
+
+    it("should pass through milliseconds unchanged", () => {
+      expect(lp.parseAsTime("100ms")).toBeCloseTo(100);
+      expect(lp.parseAsTime("500ms")).toBeCloseTo(500);
+    });
+  });
+
+  describe("drawtime e-property updates", () => {
+    it("should update e on every drawtime call in a basic series", async () => {
+      lp.bpm(123);
+      lp.speed('a5');
+      lp.lh = 1;
+      lp.interval('1/16b');
+
+      for (let i = 0; i < 20; i++) {
+        const prevE = lp.e;
+        await lp.drawtime('1/2b');
+        expect(lp.e - prevE).toBeGreaterThan(0);
+      }
+    });
+
+    it("should update e on every drawtime call with turns", async () => {
+      lp.bpm(120);
+      lp.speed(20);
+      lp.lh = 0.2;
+      lp.x = lp.cx;
+      lp.y = lp.cy;
+      lp.z = 1;
+
+      for (let i = 0; i < 20; i++) {
+        const prevE = lp.e;
+        await lp.drawtime('1b');
+        expect(lp.e - prevE).toBeGreaterThan(0);
+        lp.turn(90);
+      }
+    });
+
+    it("should update e even when position is clipped to printer bounds", async () => {
+      lp.bpm(120);
+      lp.speed(20);
+      lp.lh = 0.2;
+      lp.x = lp.maxx - 5;
+      lp.y = lp.maxy - 5;
+      lp.z = 1;
+
+      for (let i = 0; i < 10; i++) {
+        const prevE = lp.e;
+        await lp.drawtime('1b');
+        expect(lp.e - prevE).toBeGreaterThan(0);
+      }
+    });
+
+    it("should update e after interleaved drawtime and traveltime calls", async () => {
+      lp.bpm(120);
+      lp.speed(20);
+      lp.lh = 0.2;
+      lp.travelspeed(40);
+
+      for (let i = 0; i < 10; i++) {
+        const prevE = lp.e;
+        await lp.drawtime('1/2b');
+        expect(lp.e - prevE).toBeGreaterThan(0);
+        await lp.traveltime('1/4b');
+        lp.turn(45);
+      }
+    });
+
+    it("should update e with elevation set across multiple calls", async () => {
+      lp.bpm(123);
+      lp.speed('a5');
+      lp.lh = 1;
+      lp.interval('1/16b');
+
+      for (let i = 0; i < 20; i++) {
+        const angle = lp.elev({time:'1/2b', speed:'a5', bpm:123, lh:1});
+        lp.elevation(angle, true);
+        const prevE = lp.e;
+        await lp.drawtime('1/2b');
+        expect(lp.e - prevE).toBeGreaterThan(0);
+        lp.turn(90);
+      }
+    });
+
+    it("should update e consistently with seconds notation", async () => {
+      lp.bpm(120);
+      lp.speed(20);
+      lp.lh = 0.2;
+
+      for (let i = 0; i < 5; i++) {
+        const prevE = lp.e;
+        await lp.drawtime("0.5s");
+        expect(lp.e - prevE).toBeGreaterThan(0);
+      }
+    });
+  });
+
+  describe("drawtime/traveltime time accuracy", () => {
+    it("should not overshoot targetTime when interval does not divide evenly into draw time", async () => {
+      lp.bpm(120);
+      lp.speed(10);
+      lp.lh = 0.2;
+      lp.interval('1/3b'); // 166.67ms interval
+
+      // drawtime('3/4b') = 375ms. 375/166.67 = 2.25 steps.
+      // Final step should only move remaining ~41.67ms, not a full 166.67ms.
+      const startTime = lp.totalMoveTime;
+      await lp.drawtime('3/4b');
+      const elapsed = lp.totalMoveTime - startTime;
+      const expected = lp.parseAsTime('3/4b');
+
+      expect(elapsed).toBeCloseTo(expected, 0);
+    });
+
+    it("traveltime should not overshoot targetTime either", async () => {
+      lp.bpm(120);
+      lp.travelspeed(10);
+      lp.interval('1/3b');
+
+      const startTime = lp.totalMoveTime;
+      await lp.traveltime('3/4b');
+      const elapsed = lp.totalMoveTime - startTime;
+      const expected = lp.parseAsTime('3/4b');
+
+      expect(elapsed).toBeCloseTo(expected, 0);
+    });
+  });
+
 });

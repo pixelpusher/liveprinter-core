@@ -573,7 +573,7 @@ export class LivePrinter {
     if (this._intervalTime < MIN_INTERVAL) {
       this._intervalTime = MIN_INTERVAL;
       throw new Error(
-        `Error setting interval() time, too short: ${targetTime} < ${MIN_INTERVAL}`,
+        `Error setting interval() time, too short: ${this._intervalTime} < ${MIN_INTERVAL}`,
       );
     }
     
@@ -1066,7 +1066,7 @@ export class LivePrinter {
       });
 
       const dt = Math.min(rawDt, remaining);
-      const distPerMove = this.t2mm(rawDt);
+      const distPerMove = this.t2mm(dt);
       
       let vdistPerMove = 0,
       hdistPerMove = distPerMove;
@@ -1194,7 +1194,7 @@ export class LivePrinter {
         ) {
           case "s": // seconds
           {
-            targetTime = numberParam / 1000;
+            targetTime = numberParam * 1000;
           }
           break;
           
@@ -1620,7 +1620,7 @@ export class LivePrinter {
         tt: this.totalMoveTime,
       });
       
-      const distPerMove = Math.min(this.t2mm(dt), targetDist - totalDistance);
+      const distPerMove = Math.min(this.t2mm(dt, this._travelSpeed), targetDist - totalDistance);
       
       let vdistPerMove = 0,
       hdistPerMove = distPerMove;
@@ -1739,7 +1739,7 @@ export class LivePrinter {
       });
       
       const dt = Math.min(rawDt, remaining);
-      const distPerMove = this.t2mm(rawDt);
+      const distPerMove = this.t2mm(dt, this._travelSpeed);
       
       let vdistPerMove = 0,
         hdistPerMove = distPerMove;
@@ -2203,18 +2203,13 @@ export class LivePrinter {
     * Send movement update GCode to printer based on current position (this.x,y,z).
     * */
     async sendExtrusionGCode(speed) {
-      // account for errors in decimal precision
-      this.e = parseFloat(this.e.toFixed(4));
-      this.x = parseFloat(this.x.toFixed(4));
-      this.y = parseFloat(this.y.toFixed(4));
-      this.z = parseFloat(this.z.toFixed(4));
       
       // G1 - Coordinated Movement X Y Z E
       let moveCode = ["G1"];
-      moveCode.push("X" + this.x);
-      moveCode.push("Y" + this.y);
-      moveCode.push("Z" + this.z);
-      moveCode.push("E" + this.e);
+      moveCode.push("X" + parseFloat(this.x.toFixed(4)));
+      moveCode.push("Y" + parseFloat(this.y.toFixed(4)));
+      moveCode.push("Z" + parseFloat(this.z.toFixed(4)));
+      moveCode.push("E" + parseFloat(this.e.toFixed(4)));
       moveCode.push("F" + (speed * 60).toFixed(4)); // mm/s to mm/min
       await this.gcodeEvent(moveCode.join(" "));
       
