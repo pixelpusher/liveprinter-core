@@ -3,34 +3,38 @@ import { LivePrinter } from '../js/liveprinter';
 
 describe('LivePrinter Core', () => {
   let lp;
+  let printerEventHandler = {
+      eventFired: false,
+      lastEvent: null,
+      printEvent: function (event) {
+        if (event.type === 'move-start' || event.type === 'extrude-start') {
+          this.eventFired = true;
+          this.lastEvent = event;
+        }
+      }
+    };
 
   beforeEach(() => {
     lp = new LivePrinter("UM2plus");
   });
 
   it('should move the printer by x, y, z and get the result by listening for the printEvent', async () => {
-    let eventFired = false;
-    let lastEvent = null;
+    printerEventHandler.eventFired = false;
+    printerEventHandler.lastEvent = null;
 
-    lp.addPrintListener({
-      printEvent: (event) => {
-        if (event.type === 'move-start' || event.type === 'extrude-start') {
-          eventFired = true;
-          lastEvent = event;
-        }
-      }
-    });
+    // add new each time
+    lp.addPrintListener(printerEventHandler);
 
     // Give it speed to guarantee it calculates actual physical travel rather than a wait op
     lp.travelspeed(100);
     await lp.move({ x: 10, y: 20, z: 5, speed: 100 });
 
-    expect(eventFired).toBe(true);
-    expect(lastEvent).toBeDefined();
+    expect(printerEventHandler.eventFired).toBe(true);
+    expect(printerEventHandler.lastEvent).toBeDefined();
     
-    expect(lastEvent.newPosition.x).toBeCloseTo(10);
-    expect(lastEvent.newPosition.y).toBeCloseTo(20);
-    expect(lastEvent.newPosition.z).toBeCloseTo(5);
+    expect(printerEventHandler.lastEvent.newPosition.x).toBeCloseTo(10);
+    expect(printerEventHandler.lastEvent.newPosition.y).toBeCloseTo(20);
+    expect(printerEventHandler.lastEvent.newPosition.z).toBeCloseTo(5);
     
     expect(lp.x).toBeCloseTo(10);
     expect(lp.y).toBeCloseTo(20);
@@ -315,42 +319,41 @@ describe('drawfill() robust check', () => {
   describe("drawtime e-property updates", () => {
     it("should update e on every drawtime call in a basic series", async () => {
       lp.bpm(123);
-      lp.speed('a5');
+      lp.speed('a4');
       lp.lh = 1;
       lp.interval('1/16b');
 
-      for (let i = 0; i < 20; i++) {
+      for (let i = 0; i < 200; i++) {
         const prevE = lp.e;
-        await lp.drawtime('1/2b');
+        await lp.drawtime('1/16b');
         expect(lp.e - prevE).toBeGreaterThan(0);
       }
     });
 
     it("should update e on every drawtime call with turns", async () => {
       lp.bpm(120);
-      lp.speed(20);
+      lp.speed('c6');
       lp.lh = 0.2;
       lp.x = lp.cx;
       lp.y = lp.cy;
       lp.z = 1;
 
-      for (let i = 0; i < 20; i++) {
+      for (let i = 0; i < 200; i++) {
         const prevE = lp.e;
-        await lp.drawtime('1b');
+        await lp.drawtime('2b'); lp.turn(90);
         expect(lp.e - prevE).toBeGreaterThan(0);
-        lp.turn(90);
       }
     });
 
     it("should update e even when position is clipped to printer bounds", async () => {
       lp.bpm(120);
-      lp.speed(20);
+      lp.speed('e5');
       lp.lh = 0.2;
       lp.x = lp.maxx - 5;
       lp.y = lp.maxy - 5;
       lp.z = 1;
 
-      for (let i = 0; i < 10; i++) {
+      for (let i = 0; i < 200; i++) {
         const prevE = lp.e;
         await lp.drawtime('1b');
         expect(lp.e - prevE).toBeGreaterThan(0);
@@ -363,11 +366,11 @@ describe('drawfill() robust check', () => {
       lp.lh = 0.2;
       lp.travelspeed(40);
 
-      for (let i = 0; i < 10; i++) {
+      for (let i = 0; i < 200; i++) {
         const prevE = lp.e;
-        await lp.drawtime('1/2b');
+        await lp.drawtime('1/2b'); lp.turn(180);
         expect(lp.e - prevE).toBeGreaterThan(0);
-        await lp.traveltime('1/4b');
+        await lp.traveltime('1/4b'); lp.turn(180);
         lp.turn(45);
       }
     });
@@ -378,11 +381,11 @@ describe('drawfill() robust check', () => {
       lp.lh = 1;
       lp.interval('1/16b');
 
-      for (let i = 0; i < 20; i++) {
-        const angle = lp.elev({time:'1/2b', speed:'a5', bpm:123, lh:1});
+      for (let i = 0; i < 200; i++) {
+        const angle = lp.elev({time:'2b'});
         lp.elevation(angle, true);
         const prevE = lp.e;
-        await lp.drawtime('1/2b');
+        await lp.drawtime('1/2b'); lp.turn(90);
         expect(lp.e - prevE).toBeGreaterThan(0);
         lp.turn(90);
       }
@@ -393,13 +396,38 @@ describe('drawfill() robust check', () => {
       lp.speed(20);
       lp.lh = 0.2;
 
-      for (let i = 0; i < 5; i++) {
+      for (let i = 0; i < 50; i++) {
         const prevE = lp.e;
-        await lp.drawtime("0.5s");
+        await lp.drawtime("0.5s"); lp.turn(90);
         expect(lp.e - prevE).toBeGreaterThan(0);
       }
     });
+
+    it("should update e when mixed with retract etc.", async () => {
+      lp.bpm(120);
+      lp.speed('e5');
+      lp.lh = 0.2;
+      lp.x = lp.cx;
+      lp.y = lp.cy;
+      lp.z = 0.2;
+
+      for (let i = 0; i < 20; i++) {
+        let prevE = lp.e;
+        await lp.drawtime('2b'); lp.turn(180);
+        expect(lp.e - prevE).toBeGreaterThan(0);
+        await lp.retract();
+        await lp.unretract();
+        lp.turn(30+30*Math.random());
+        prevE = lp.e;
+        await lp.drawtime('1b'); 
+        lp.turn(30+30*Math.random());
+        expect(lp.e - prevE).toBeGreaterThan(0);
+      }
+
+    });
   });
+
+
 
   describe("drawtime/traveltime time accuracy", () => {
     it("should not overshoot targetTime when interval does not divide evenly into draw time", async () => {
@@ -424,12 +452,14 @@ describe('drawfill() robust check', () => {
       lp.interval('1/3b');
 
       const startTime = lp.totalMoveTime;
-      await lp.traveltime('3/4b');
+      await lp.traveltime('3/4b'); lp.turn(90);
       const elapsed = lp.totalMoveTime - startTime;
       const expected = lp.parseAsTime('3/4b');
 
       expect(elapsed).toBeCloseTo(expected, 0);
     });
   });
+
+
 
 });
