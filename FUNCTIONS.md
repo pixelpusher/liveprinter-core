@@ -1162,6 +1162,11 @@ await lp.run("A0 D10 L90 UP5 DN5 <1 >1 S20 W1.5b T10", false);
 
 // Using time-based units like beats ('b'), milliseconds ('ms'), and seconds ('s')
 await lp.run("DT1b TT 1/2b W1.5b", false);
+
+// Draw and render a polygon shape into a list of points, speeds, bpm, etc. 
+const render = true;
+const pointsData = await lp.run("A0 D10 L90 D10 L90 D10 L90 D10", true);
+info(pointsData);
 ```
 
 ---
