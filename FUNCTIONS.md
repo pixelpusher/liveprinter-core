@@ -1148,7 +1148,7 @@ Run a sequence of commands specified in a short-hand grammar string. This is use
 - `A[val]` - Turn To Angle (e.g., `A0`, `A180`)
 - `<[val]` - Retract (e.g., `<1`)
 - `>[val]` - Unretract (e.g., `>1`)
-- `S[val]` - Set Speed (e.g., `S20`)
+- `S[val]` - Set Speed (e.g., `S20`, or MIDI notation like `SA4`, `SB#5`, or `S440hz`)
 - `W[val]` - Wait (e.g., `W1b`, `W500ms`)
 
 **Returns:** 

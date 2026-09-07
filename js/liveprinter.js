@@ -1403,8 +1403,10 @@ export class LivePrinter {
     
     
     // Match whole command
-    const cmdRegExp = /([a-zA-Z<>]+\s*[0-9]+(?:\.[0-9]*|\/[0-9]+)?(?:b|ms|s)?)/gim;
-    const subCmdRegExp = /([a-zA-Z<>]+)\s*([0-9]+(?:\.[0-9]*|\/[0-9]+)?(?:b|ms|s)?)/i;
+    const commandsList = "TT|DT|UP|DN|T|D|L|R|A|<|>|S|W";
+    const valRegex = "[0-9]+(?:\\.[0-9]*|\\/[0-9]+)?(?:b|ms|s|hz)?|[a-gA-G][#b]?[0-9]{1,2}|hh|bd|cp|oh|sd";
+    const cmdRegExp = new RegExp(`(${commandsList})\\s*(?:${valRegex})`, "gim");
+    const subCmdRegExp = new RegExp(`^(${commandsList})\\s*(${valRegex})$`, "i");
     const found = commands.match(cmdRegExp);
     //Logger.debug(found);
     for (let cmd of found) {
@@ -1483,7 +1485,7 @@ export class LivePrinter {
 
         // speed
         case speedChar:
-        this.speed(value);
+        this.speed(valueStr);
         break;
 
         // wait
@@ -1493,7 +1495,7 @@ export class LivePrinter {
 
         default:
         throw new Error(
-          "[API] Error in run, unknown command char: " + cmdChar,
+          `[API] Error in run, unknown command char ::${cmdChar}::`
         );
       }
     }

@@ -498,6 +498,30 @@ describe('drawfill() robust check', () => {
       expect(ret).toBe(lp);
     });
 
+    it("should correctly parse MIDI note notation for speed", async () => {
+      lp.bpm(120); 
+      // Reset speed to something else first
+      lp.speed(10);
+      
+      // S[A4] should change the speed based on MIDI note
+      // A4 is 69, speed calculation is handled by midi2speed internally
+      await lp.run("SA4 D10", false);
+      
+      // Let's just check that printSpeed changed to the correct value for A4
+      const a4Speed = lp.parseAsNote("A4");
+      expect(lp.printspeed()).toBeCloseTo(a4Speed, 2);
+
+      // Check another note
+      await lp.run("SB#5", false);
+      const bSharp5Speed = lp.parseAsNote("B#5");
+      expect(lp.printspeed()).toBeCloseTo(bSharp5Speed, 2);
+
+      // Check hz notation
+      await lp.run("S440hz", false);
+      const hz440Speed = lp.parseAsNote("440hz");
+      expect(lp.printspeed()).toBeCloseTo(hz440Speed, 2);
+    });
+
     it("should correctly parse and execute commands with time units (e.g. b, ms, s, fractions)", async () => {
       lp.bpm(120); // 1 beat = 500ms
       lp.speed(10);

@@ -2631,10 +2631,10 @@ var isNamed = deprecate("isNamed", "isNamedPitch", isNamedPitch), GCODE_HEADER =
 			y: this.y,
 			z: this.z
 		});
-		let g = /([a-zA-Z<>]+\s*[0-9]+(?:\.[0-9]*|\/[0-9]+)?(?:b|ms|s)?)/gim, _ = /([a-zA-Z<>]+)\s*([0-9]+(?:\.[0-9]*|\/[0-9]+)?(?:b|ms|s)?)/i, v = e.match(g);
-		for (let e of v) {
-			let t = e.match(_);
-			if (t.length !== 3) throw Error("[API] Error in run command string: " + v);
+		let g = "TT|DT|UP|DN|T|D|L|R|A|<|>|S|W", _ = "[0-9]+(?:\\.[0-9]*|\\/[0-9]+)?(?:b|ms|s|hz)?|[a-gA-G][#b]?[0-9]{1,2}|hh|bd|cp|oh|sd", v = RegExp(`(${g})\\s*(?:${_})`, "gim"), y = RegExp(`^(${g})\\s*(${_})$`, "i"), b = e.match(v);
+		for (let e of b) {
+			let t = e.match(y);
+			if (t.length !== 3) throw Error("[API] Error in run command string: " + b);
 			let n = t[1].toUpperCase(), r = t[2], i = parseFloat(r);
 			switch (n) {
 				case "T":
@@ -2713,12 +2713,12 @@ var isNamed = deprecate("isNamed", "isNamedPitch", isNamedPitch), GCODE_HEADER =
 					this.unretract(i);
 					break;
 				case "S":
-					this.speed(i);
+					this.speed(r);
 					break;
 				case "W":
 					await this.wait(r);
 					break;
-				default: throw Error("[API] Error in run, unknown command char: " + n);
+				default: throw Error(`[API] Error in run, unknown command char ::${n}::`);
 			}
 		}
 		return t ? h : this;
