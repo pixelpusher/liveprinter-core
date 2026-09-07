@@ -460,6 +460,67 @@ describe('drawfill() robust check', () => {
     });
   });
 
+  describe("run should work with all letters and options, and combinations of them and return lists of points and speeds", () => {
+    it("should execute string commands and optionally return points", async () => {
+      lp.bpm(120);
+      lp.speed(10);
+      lp.lh = 0.2;
+      lp.interval('1/16b');
 
+      // Start at a known position
+      lp.x = 100;
+      lp.y = 100;
+      lp.z = 1;
+
+      const commands = "A0 D10 L90 UP5 DN5 <1 >1 S20 W5 T10";
+      const result = await lp.run(commands, true); // render=true to get points
+
+      expect(Array.isArray(result)).toBe(true);
+      expect(result.length).toBe(5); // 1 start + 4 move commands = 5 points
+
+      // Verify the final position roughly after these moves
+      // A0 (heading becomes 0 degrees)
+      // D10 (moves to 110, 100 since heading is 0)
+      // L90 (heading becomes 90 degrees)
+      // UP5 (z becomes 6)
+      // DN5 (moves down 5 along z: z becomes 1)
+      // <1 >1 (retract/unretract, no position change)
+      // S20 (speed change, no position change)
+      // W5 (wait 5ms, no position change)
+      // T10 (travel 10 along heading: y becomes 110)
+
+      expect(lp.x).toBeCloseTo(110, 1);
+      expect(lp.y).toBeCloseTo(110, 1);
+      expect(lp.z).toBeCloseTo(1, 1);
+
+      // Test without render
+      const ret = await lp.run("D1", false);
+      expect(ret).toBe(lp);
+    });
+
+    it("should correctly parse and execute commands with time units (e.g. b, ms, s, fractions)", async () => {
+      lp.bpm(120); // 1 beat = 500ms
+      lp.speed(10);
+      lp.lh = 0.2;
+      lp.interval(100);
+
+      // Start at a known position and time
+      lp.x = 100;
+      lp.y = 100;
+      lp.z = 1;
+      const startTime = lp.totalMoveTime;
+
+      // DT1b = 500ms draw
+      // TT 1/2b = 250ms travel (with space)
+      // W1.5b = 750ms wait
+      const commands = "DT1b TT 1/2b W1.5b";
+      await lp.run(commands, false);
+
+      const elapsed = lp.totalMoveTime - startTime;
+      
+      // 500 + 250 + 750 = 1500ms
+      expect(elapsed).toBeCloseTo(1500, 0);
+    });
+  });
 
 });

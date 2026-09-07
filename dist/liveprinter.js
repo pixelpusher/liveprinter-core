@@ -2621,41 +2621,107 @@ var isNamed = deprecate("isNamed", "isNamedPitch", isNamedPitch), GCODE_HEADER =
 	turnto(e, t = !1) {
 		return this._heading = t ? e : this.d2r(e), this;
 	}
-	run(e) {
-		let t = "M", n = "E", r = "L", i = "R", a = "U", o = "D", s = "<", c = ">", l = /([a-zA-Z<>][0-9]+\.?[0-9]*)/gim, u = /([a-zA-Z<>])([0-9]+\.?[0-9]*)/, d = e.match(l);
-		for (let e of d) {
-			let t = e.match(u);
-			if (t.length !== 3) throw Error("[API] Error in command string: " + d);
-			let n = t[1].toUpperCase(), r = parseFloat(t[2]);
+	async run(e, t = !1) {
+		let n = "T", r = "TT", i = "D", a = "DT", o = "L", s = "R", c = "A", l = "UP", u = "DN", d = "<", f = ">", p = "S", m = "W", h = [];
+		h.push({
+			bpm: this.bpm,
+			travelSpeed: this._travelSpeed,
+			printSpeed: this._printSpeed,
+			x: this.x,
+			y: this.y,
+			z: this.z
+		});
+		let g = /([a-zA-Z<>]+\s*[0-9]+(?:\.[0-9]*|\/[0-9]+)?(?:b|ms|s)?)/gim, _ = /([a-zA-Z<>]+)\s*([0-9]+(?:\.[0-9]*|\/[0-9]+)?(?:b|ms|s)?)/i, v = e.match(g);
+		for (let e of v) {
+			let t = e.match(_);
+			if (t.length !== 3) throw Error("[API] Error in run command string: " + v);
+			let n = t[1].toUpperCase(), r = t[2], i = parseFloat(r);
 			switch (n) {
-				case "M":
-					this.distance(r).go();
+				case "T":
+					await this.travel(i), h.push({
+						bpm: this.bpm,
+						travelSpeed: this._travelSpeed,
+						printSpeed: this._printSpeed,
+						x: this.x,
+						y: this.y,
+						z: this.z
+					});
 					break;
-				case "E":
-					this.distance(r).go(1, !1);
-					break;
-				case "L":
-					this.turn(r);
-					break;
-				case "R":
-					this.turn(-r);
-					break;
-				case "U":
-					this.up(r).go();
+				case "TT":
+					await this.traveltime(r), h.push({
+						bpm: this.bpm,
+						travelSpeed: this._travelSpeed,
+						printSpeed: this._printSpeed,
+						x: this.x,
+						y: this.y,
+						z: this.z
+					});
 					break;
 				case "D":
-					this.down(r).go();
+					await this.draw(i), h.push({
+						bpm: this.bpm,
+						travelSpeed: this._travelSpeed,
+						printSpeed: this._printSpeed,
+						x: this.x,
+						y: this.y,
+						z: this.z
+					});
+					break;
+				case "DT":
+					await this.drawtime(r), h.push({
+						bpm: this.bpm,
+						travelSpeed: this._travelSpeed,
+						printSpeed: this._printSpeed,
+						x: this.x,
+						y: this.y,
+						z: this.z
+					});
+					break;
+				case "UP":
+					await this.up(i), h.push({
+						bpm: this.bpm,
+						travelSpeed: this._travelSpeed,
+						printSpeed: this._printSpeed,
+						x: this.x,
+						y: this.y,
+						z: this.z
+					});
+					break;
+				case "DN":
+					await this.down(i), h.push({
+						bpm: this.bpm,
+						travelSpeed: this._travelSpeed,
+						printSpeed: this._printSpeed,
+						x: this.x,
+						y: this.y,
+						z: this.z
+					});
+					break;
+				case "A":
+					this.turnto(i);
+					break;
+				case "L":
+					this.turn(i);
+					break;
+				case "R":
+					this.turn(-i);
 					break;
 				case "<":
-					this.retract(r);
+					this.retract(i);
 					break;
 				case ">":
-					this.unretract(r);
+					this.unretract(i);
 					break;
-				default: throw Error("[API] Error in command - unknown command char: " + n);
+				case "S":
+					this.speed(i);
+					break;
+				case "W":
+					await this.wait(r);
+					break;
+				default: throw Error("[API] Error in run, unknown command char: " + n);
 			}
 		}
-		return this;
+		return t ? h : this;
 	}
 	async up(e) {
 		return this.move({

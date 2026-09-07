@@ -1038,7 +1038,7 @@ export class LivePrinter {
     // Logger.debug(`go: total move time/num: ${totalMovementsTime} / ${totalMovements}`);
     
     let safetyCounter = 20000; // arbitrary -- make sure we don't hit infinite loops
-        
+    
     // avoid floating point accumulation bugs
     while (safetyCounter && (targetTime - this.totalMoveTime > 1e-4)) 
       {
@@ -1064,7 +1064,7 @@ export class LivePrinter {
         t: elapsedTime,
         tt: this.totalMoveTime,
       });
-
+      
       const dt = Math.min(rawDt, remaining);
       const distPerMove = this.t2mm(dt);
       
@@ -1374,43 +1374,95 @@ export class LivePrinter {
     return this;
   }
   /**
-  * TODO: THIS IS TOTALLY BROKEN, IGNORE FOR NOW
   *
   * Run a set of commands specified in a grammar (experimental.)
-  * @param {String} strings commands to run - M(move),E(extrude),L(left turn),R(right turn)
-  * @returns {Printer} Reference to this object for chaining
+  * @param {String} commands commands to run - M(move),E(extrude),L(left turn),R(right turn)
+  * @param {Boolean} render Whether to run this now (false, default) or render into array (if true)
+  * @returns {Array or Object} Either this object (if not rendering) or a 2D array of rendered
+  *  [points, speeds] pairs for playing back
   */
-  run(strings) {
-    const mvChar = "M";
-    const exChar = "E";
+  async run(commands, render=false) {
+    const travelChar = "T";
+    const travelTimeChar = "TT";
+    const drawChar = "D";
+    const drawTimeChar = "DT";
     const ltChar = "L";
     const rtChar = "R";
-    const upChar = "U";
-    const dnChar = "D";
-    const rtrChar = "<";
-    const urtrChar = ">";
+    const turntoChar = "A";
+    const upChar = "UP";
+    const downChar = "DN";
+    const retractChar = "<";
+    const unretractChar = ">";
+    const speedChar = "S";
+    const waitChar = "W";
+    
+    const pointsAndSpeeds = [];
+    // first point
+    pointsAndSpeeds.push({bpm: this.bpm, travelSpeed: this._travelSpeed, printSpeed: this._printSpeed,
+          x:this.x, y:this.y, z:this.z});
+    
     
     // Match whole command
-    const cmdRegExp = /([a-zA-Z<>][0-9]+\.?[0-9]*)/gim;
-    const subCmdRegExp = /([a-zA-Z<>])([0-9]+\.?[0-9]*)/;
-    const found = strings.match(cmdRegExp);
+    const cmdRegExp = /([a-zA-Z<>]+\s*[0-9]+(?:\.[0-9]*|\/[0-9]+)?(?:b|ms|s)?)/gim;
+    const subCmdRegExp = /([a-zA-Z<>]+)\s*([0-9]+(?:\.[0-9]*|\/[0-9]+)?(?:b|ms|s)?)/i;
+    const found = commands.match(cmdRegExp);
     //Logger.debug(found);
     for (let cmd of found) {
       //Logger.debug(cmd);
-      let matches = cmd.match(subCmdRegExp);
+      const matches = cmd.match(subCmdRegExp);
       
       if (matches.length !== 3)
-        throw new Error("[API] Error in command string: " + found);
+        throw new Error("[API] Error in run command string: " + found);
       
       const cmdChar = matches[1].toUpperCase();
-      const value = parseFloat(matches[2]);
+      const valueStr = matches[2];
+      const value = parseFloat(valueStr);
       
       switch (cmdChar) {
-        case mvChar:
-        this.distance(value).go();
+        
+        // move and draw
+        case travelChar:
+        await this.travel(value);
+        pointsAndSpeeds.push({bpm: this.bpm, travelSpeed: this._travelSpeed, printSpeed: this._printSpeed,
+          x:this.x, y:this.y, z:this.z});
         break;
-        case exChar:
-        this.distance(value).go(1, false);
+
+        case travelTimeChar:
+        
+        await this.traveltime(valueStr);
+        pointsAndSpeeds.push({bpm: this.bpm, travelSpeed: this._travelSpeed, printSpeed: this._printSpeed,
+          x:this.x, y:this.y, z:this.z});
+        break;
+        
+        case drawChar:
+
+        await this.draw(value);
+        pointsAndSpeeds.push({bpm: this.bpm, travelSpeed: this._travelSpeed, printSpeed: this._printSpeed,
+          x:this.x, y:this.y, z:this.z});
+        break;
+
+        case drawTimeChar:
+        await this.drawtime(valueStr);
+        pointsAndSpeeds.push({bpm: this.bpm, travelSpeed: this._travelSpeed, printSpeed: this._printSpeed,
+          x:this.x, y:this.y, z:this.z});
+        break;
+
+        // up/down
+
+        case upChar:
+        await this.up(value);
+        pointsAndSpeeds.push({bpm: this.bpm, travelSpeed: this._travelSpeed, printSpeed: this._printSpeed,
+          x:this.x, y:this.y, z:this.z});
+        break;
+
+        case downChar:
+        await this.down(value);
+        pointsAndSpeeds.push({bpm: this.bpm, travelSpeed: this._travelSpeed, printSpeed: this._printSpeed,
+          x:this.x, y:this.y, z:this.z});        break;
+      
+        // turns
+        case turntoChar:
+        this.turnto(value);
         break;
         case ltChar:
         this.turn(value);
@@ -1418,26 +1470,35 @@ export class LivePrinter {
         case rtChar:
         this.turn(-value);
         break;
-        case upChar:
-        this.up(value).go();
-        break;
-        case dnChar:
-        this.down(value).go();
-        break;
-        case rtrChar:
+
+
+        // retraction
+        case retractChar:
         this.retract(value);
         break;
-        case urtrChar:
+
+        case unretractChar:
         this.unretract(value);
         break;
+
+        // speed
+        case speedChar:
+        this.speed(value);
+        break;
+
+        // wait
+        case waitChar:
+        await this.wait(valueStr);
+        break;
+
         default:
         throw new Error(
-          "[API] Error in command - unknown command char: " + cmdChar,
+          "[API] Error in run, unknown command char: " + cmdChar,
         );
       }
     }
     
-    return this;
+    return render ? pointsAndSpeeds : this;
   }
   
   /**
@@ -1742,7 +1803,7 @@ export class LivePrinter {
       const distPerMove = this.t2mm(dt, this._travelSpeed);
       
       let vdistPerMove = 0,
-        hdistPerMove = distPerMove;
+      hdistPerMove = distPerMove;
       
       let { d, heading, elevation } = this._warp({
         d: distPerMove,

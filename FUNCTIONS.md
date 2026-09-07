@@ -585,6 +585,29 @@ Execute a travel movement based on internally-set direction and distance.
 
 **Returns:** (Promise<LivePrinter>) Reference to this object for chaining
 
+**Non-Trivial Example (Interleaving Movement):**
+From the test suite, here is an example of interleaving time-based drawing and traveling while dynamically turning, maintaining the `e` extruder accumulation perfectly across boundaries:
+```javascript
+// Complex patterned movement
+lp.bpm(120);
+lp.speed(20);
+lp.lh = 0.2;
+lp.travelspeed(40);
+
+for (let i = 0; i < 200; i++) {
+  // Draw for half a beat, then turn around
+  await lp.drawtime('1/2b'); 
+  lp.turn(180);
+  
+  // Travel without extruding for a quarter beat, then turn around
+  await lp.traveltime('1/4b'); 
+  lp.turn(180);
+  
+  // Angle slightly for the next iteration
+  lp.turn(45);
+}
+```
+
 ---
 
 ## Parsing & Conversion
@@ -796,6 +819,24 @@ Shortcut for `elevation()` (alias for conceptual clarity).
 - `_elev` (Number): Elevation angle to tilt (90 = up, -90 = down)
 
 **Returns:** (LivePrinter) Reference to this object for chaining
+
+**Non-Trivial Example (Dynamic Elevation):**
+From the test suite, here is an example of dynamically calculating elevation over time and interleaving it with drawing and turning:
+```javascript
+lp.bpm(123);
+lp.speed('a5'); // Set speed based on MIDI note
+lp.lh = 1;
+
+for (let i = 0; i < 200; i++) {
+  // Calculate a dynamic elevation angle based on a time period
+  const angle = lp.elev({time:'2b'}); 
+  lp.elevation(angle, true); // Set elevation in radians (true)
+  
+  // Draw for half a beat and turn
+  await lp.drawtime('1/2b'); 
+  lp.turn(90);
+}
+```
 
 ### Distance Control
 
@@ -1088,10 +1129,40 @@ Get speed scales for MIDI note mapping from the printer model.
 
 **Returns:** (Object) {x, y, z} speed scaling factors
 
-### `run(strings)` ⚠️ **EXPERIMENTAL/BROKEN**
-Run a set of commands specified in a grammar string.
+### `async run(commands, render=false)`
+Run a sequence of commands specified in a short-hand grammar string. This is useful for writing compact movement sequences.
 
-**Note:** This function is currently broken and not recommended for use.
+**Parameters:**
+- `commands` (String): A string containing space-separated movement commands.
+- `render` (Boolean, optional): If `true`, returns an array of the path points instead of executing them immediately. Default is `false`.
+
+**Supported Commands:**
+- `T[val]` - Travel (e.g., `T10` for 10mm)
+- `TT[val]` - Travel Time (e.g., `TT 1/2b`, `TT500ms`)
+- `D[val]` - Draw/Extrude (e.g., `D10`)
+- `DT[val]` - Draw Time (e.g., `DT1b`, `DT1.5s`)
+- `UP[val]` - Move Up (e.g., `UP5`)
+- `DN[val]` - Move Down (e.g., `DN5`)
+- `L[val]` - Turn Left (counter-clockwise) (e.g., `L90`)
+- `R[val]` - Turn Right (clockwise) (e.g., `R90`)
+- `A[val]` - Turn To Angle (e.g., `A0`, `A180`)
+- `<[val]` - Retract (e.g., `<1`)
+- `>[val]` - Unretract (e.g., `>1`)
+- `S[val]` - Set Speed (e.g., `S20`)
+- `W[val]` - Wait (e.g., `W1b`, `W500ms`)
+
+**Returns:** 
+- If `render` is `false`: (Promise<LivePrinter>) Reference to this object for chaining.
+- If `render` is `true`: (Array) An array containing objects representing the points and speeds of the generated path.
+
+**Example from Tests:**
+```javascript
+// Complex sequence of movements, turns, height changes, and time-based commands
+await lp.run("A0 D10 L90 UP5 DN5 <1 >1 S20 W1.5b T10", false);
+
+// Using time-based units like beats ('b'), milliseconds ('ms'), and seconds ('s')
+await lp.run("DT1b TT 1/2b W1.5b", false);
+```
 
 ---
 
