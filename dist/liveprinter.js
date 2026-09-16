@@ -2143,7 +2143,7 @@ var isNamed = deprecate("isNamed", "isNamedPitch", isNamedPitch), GCODE_HEADER =
 	UM2: !1,
 	UM2plus: !0,
 	REPRAP: !1,
-	PRUSAMINI: !1
+	PRUSAMINI: !0
 }, MinLayerHeight = .05, MIN_INTERVAL = 5.357, TimeRegex = /^(\d+|\d+\.\d+|\d+\/\d+|\d+\s+\d+\/\d+)(s|ms|b)/i, DimensionRegex = /(\d+|\d+\.\d+|\d+\/\d+)(cm|mm|in)/i, LivePrinter = class {
 	constructor(e = "UM2plus") {
 		this.gcodeListeners = [], this.printListeners = [], this.errorListeners = [], this.opListeners = [], this._layerHeight = .2, this.lastSpeed = -1, this._heading = 0, this._elevation = 0, this._distance = 0, this._waitTime = 0, this._autoRetract = !0, this._bpm = 120, this._intervalTime = this.parseAsTime("1/4b"), this._stopped = !1, this._bail = !1, this._pauseTime = 0, this.totalMoveTime = 0, this.maxFilamentPerOperation = 30, this.minFilamentPerOperation = 2e-4, this.maxTimePerOperation = 6e4, this.currentRetraction = 0, this.retractLength = 8.5, this._retractSpeed = 1800, this.firmwareRetract = !1, this.extraUnretract = 0, this.unretractZHop = 0, this.drum2speed = {

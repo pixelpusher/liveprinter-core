@@ -91,4 +91,4 @@ export const SPEED_SCALE = {
 }
 
 export const FilamentDiameter = { "UM3": 2.85, "UM2": 2.85, "UM2plus": 2.85, "REPRAP": 1.75, "PRUSAMINI": 1.75 };
-export const ExtrusionInmm3 = { "UM3": false, "UM2": false, "UM2plus": true, "REPRAP": false, "PRUSAMINI": false };
+export const ExtrusionInmm3 = { "UM3": false, "UM2": false, "UM2plus": true, "REPRAP": false, "PRUSAMINI": true };
