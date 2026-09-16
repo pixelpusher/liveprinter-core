@@ -170,6 +170,28 @@ describe('drawfill() robust check', () => {
       expect(lp.angle).toBeCloseTo(startAngle); // Orientation must remain unaffected
     });
   });
+  describe("turnto", () => {
+    it("should set heading in degrees by default", () => {
+      lp.turnto(90);
+      expect(lp.getAngle(true)).toBeCloseTo(Math.PI / 2);
+      expect(lp.getAngle(false)).toBeCloseTo(90);
+
+      lp.turnto(-45);
+      expect(lp.getAngle(true)).toBeCloseTo(-Math.PI / 4);
+      expect(lp.getAngle(false)).toBeCloseTo(-45);
+    });
+
+    it("should set heading in radians if specified", () => {
+      lp.turnto(Math.PI, true);
+      expect(lp.getAngle(true)).toBeCloseTo(Math.PI);
+      expect(lp.getAngle(false)).toBeCloseTo(180);
+
+      lp.turnto(-Math.PI / 2, true);
+      expect(lp.getAngle(true)).toBeCloseTo(-Math.PI / 2);
+      expect(lp.getAngle(false)).toBeCloseTo(-90);
+    });
+  });
+
 
   describe("elevation, elev, and calcElevation", () => {
     it("should set elevation directly using elevation() and elev()", () => {
